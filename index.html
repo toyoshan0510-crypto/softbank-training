@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>SoftBrand 研修ToDo</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;background:#f5f7fb;color:#1a1a2e;min-height:100vh}
+.screen{display:none}
+.screen.active{display:block}
+.top-bar{padding:20px 16px 16px;color:#fff;border-radius:0 0 20px 20px}
+.top-bar.green{background:#06C755}
+.top-bar.navy{background:#162040}
+.btn{width:100%;padding:13px;border-radius:10px;border:1px solid #ddd;background:#fff;color:#1a1a2e;font-size:14px;font-weight:500;cursor:pointer;margin-bottom:10px;font-family:inherit}
+.btn-green{background:#06C755;color:#fff;border-color:#06C755}
+.btn-green:hover{background:#05a847}
+.btn-navy{background:#162040;color:#fff;border-color:#162040}
+.btn-back{background:rgba(255,255,255,0.2);border:none;color:#fff;padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;margin-bottom:12px;font-family:inherit}
+.card{background:#fff;border:1px solid #e8ecf4;border-radius:14px;margin-bottom:10px;overflow:hidden;cursor:pointer}
+.card.done{border-color:#06C755;background:#f0faf5}
+.card-head{padding:14px 16px;display:flex;align-items:center;gap:12px}
+.progress-wrap{height:6px;background:rgba(255,255,255,0.3);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:#fff;border-radius:3px;transition:width 0.4s}
+.step-circle{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;border:2px solid #ddd;color:#999}
+.step-circle.done-c{background:#06C755;border-color:#06C755;color:#fff}
+.pill{font-size:10px;padding:2px 9px;border-radius:20px;font-weight:600}
+.pill-done{background:#d1f5e0;color:#0a6640}
+.pill-todo{background:#f0f0f0;color:#888}
+.pill-add{background:#fff3e0;color:#854f0b}
+.detail-box{background:#f5f7fb;border-radius:10px;padding:12px 14px;font-size:13px;color:#555;line-height:1.7;white-space:pre-wrap;margin-bottom:12px}
+.link-btn{display:block;padding:11px;border:1.5px solid;border-radius:10px;text-align:center;font-size:13px;font-weight:600;text-decoration:none;margin-bottom:10px}
+.check-box{padding:12px 14px;background:#fff;border:1px solid #e8ecf4;border-radius:10px;margin-bottom:10px}
+.staff-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f0f0}
+.staff-row:last-child{border-bottom:none}
+.avatar{width:34px;height:34px;border-radius:50%;background:#e6f1fb;color:#185fa5;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.tab-bar{display:flex;border-bottom:1px solid #e8ecf4;margin-bottom:14px}
+.tab{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:500;color:#888;cursor:pointer;border-bottom:2px solid transparent}
+.tab.active{color:#06C755;border-bottom-color:#06C755}
+.note{background:#f5f7fb;border-radius:10px;padding:10px 12px;font-size:12px;color:#888;line-height:1.6}
+input[type=text]{width:100%;padding:11px 14px;border:1px solid #ddd;border-radius:10px;font-size:14px;font-family:inherit;outline:none}
+input[type=text]:focus{border-color:#06C755}
+.section-title{font-size:12px;color:#888;margin-bottom:8px;font-weight:600;letter-spacing:0.5px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.stat-card{background:#f5f7fb;border-radius:10px;padding:12px;text-align:center}
+.stat-val{font-size:24px;font-weight:700;margin:4px 0}
+.stat-lbl{font-size:10px;color:#888}
+</style>
+</head>
+<body>
+
+<div id="s-top" class="screen active">
+  <div class="top-bar green">
+    <div style="font-size:11px;opacity:0.8;letter-spacing:1px;margin-bottom:6px">ASXEED / SOFTBRAND</div>
+    <div style="font-size:22px;font-weight:700;margin-bottom:3px">営業研修ToDoシステム</div>
+    <div style="font-size:13px;opacity:0.85">7ステップで「見て・書いて・やって・証明する」</div>
+  </div>
+  <div style="padding:20px 16px">
+    <div class="section-title" style="margin-bottom:6px">お名前を入力してください</div>
+    <input type="text" id="name-input" placeholder="山田 太郎" oninput="checkName()" style="margin-bottom:14px">
+    <button class="btn btn-green" id="start-btn" onclick="startStaff()" style="opacity:0.4;pointer-events:none;margin-bottom:10px">研修をはじめる →</button>
+    <button class="btn btn-navy" onclick="showAdmin()">管理者ビュー</button>
+    <div class="note" style="margin-top:14px">
+      お名前を入力して「研修をはじめる」をタップしてください。前回の進捗は自動で復元されます。
+    </div>
+  </div>
+</div>
+
+<div id="s-list" class="screen">
+  <div class="top-bar green" id="list-header">
+    <button class="btn-back" onclick="goTop()">← 戻る</button>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:10px">
+      <div>
+        <div style="font-size:11px;opacity:0.8">こんにちは</div>
+        <div style="font-size:19px;font-weight:700" id="list-name">—</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:11px;opacity:0.8">進捗</div>
+        <div style="font-size:24px;font-weight:700" id="list-pct">0%</div>
+      </div>
+    </div>
+    <div class="progress-wrap"><div class="progress-fill" id="list-bar" style="width:0%"></div></div>
+  </div>
+  <div style="padding:14px 16px">
+    <div class="section-title">研修ステップ一覧</div>
+    <div id="task-list"></div>
+    <div class="note" style="margin-top:10px">各ステップをタップすると詳細と実施方法が確認できます。</div>
+  </div>
+</div>
+
+<div id="s-task" class="screen">
+  <div class="top-bar green" id="task-header">
+    <button class="btn-back" onclick="backToList()">← 一覧へ</button>
+    <div style="font-size:11px;opacity:0.8" id="task-step-lbl">STEP 1</div>
+    <div style="font-size:18px;font-weight:700;margin-top:2px" id="task-title-main">—</div>
+  </div>
+  <div style="padding:14px 16px">
+    <div id="task-body"></div>
+    <button class="btn btn-green" id="complete-btn" onclick="completeTask()">✓ このステップを完了する</button>
+    <button class="btn" id="undo-btn" onclick="undoTask()" style="display:none;font-size:13px;color:#888">完了を取り消す</button>
+  </div>
+</div>
+
+<div id="s-admin" class="screen">
+  <div class="top-bar navy">
+    <button class="btn-back" onclick="goTop()">← 戻る</button>
+    <div style="font-size:19px;font-weight:700">管理者ダッシュボード</div>
+    <div style="font-size:12px;opacity:0.7;margin-top:3px">スタッフ別 研修進捗一覧</div>
+  </div>
+  <div style="padding:14px 16px">
+    <div class="tab-bar">
+      <div class="tab active" onclick="switchTab('progress')">進捗一覧</div>
+      <div class="tab" onclick="switchTab('summary')">サマリー</div>
+    </div>
+    <div id="tab-progress"><div id="staff-list"></div></div>
+    <div id="tab-summary" style="display:none">
+      <div class="stat-grid" id="summary-cards"></div>
+      <div style="background:#fff;border:1px solid #e8ecf4;border-radius:14px;padding:14px">
+        <div class="section-title" style="margin-bottom:12px">ステップ別 完了率</div>
+        <div id="step-bars"></div>
+      </div>
+    </div>
+    <div class="note" style="margin-top:12px">スタッフがチェックを入れるとリアルタイムで反映されます。</div>
+  </div>
+</div>
+
+<script>
+const FORM_TEST = 'https://forms.gle/ACxQdcamQgLYbSgf9';
+const FORM_RP   = 'https://forms.gle/PGFQpN9R1b5XYn9U8';
+
+const TASKS = [
+  {
+    id:'t1', step:'STEP 1', title:'動画視聴', color:'#06C755', est:'約10〜15分', tag:'',
+    desc:'LINEで届いた研修動画のURLを開いて、最後まで視聴してください。\n視聴が終わったら下の「完了する」ボタンを押してください。',
+    link:null, linkLabel:null,
+    check:'動画を最後まで視聴しましたか？',
+  },
+  {
+    id:'t2', step:'STEP 2', title:'確認テスト（80点合格制）', color:'#1A73E8', est:'約5分', tag:'合格制',
+    desc:'動画の内容をもとに確認テスト（5問）に回答してください。\n80点以上で合格です。不合格の場合は動画を再視聴してから再チャレンジしてください。',
+    link:FORM_TEST, linkLabel:'確認テストを受ける',
+    check:'80点以上で合格しましたか？',
+  },
+  {
+    id:'t3', step:'STEP 3', title:'テキストロールプレイ提出', color:'#06C755', est:'約10分', tag:'追加採用',
+    desc:'以下のシナリオを読んで、自分ならどう返答するかを100字以上で書いて提出してください。\n\n【シナリオ】\nお客様：「今のスマホがちょっと重くて…でも2年まだ経ってないし、どうすればいいですかね？」\n\nあなたならこのあと何と言いますか？自分の言葉で書いてください。',
+    link:FORM_RP, linkLabel:'テキストRPフォームを開く',
+    check:'フォームに100字以上で回答して提出しましたか？',
+  },
+  {
+    id:'t4', step:'STEP 4', title:'対面研修への参加', color:'#7B1FA2', est:'約40分', tag:'',
+    desc:'管理者が指定した日時の対面研修に参加してください。\n\n対面研修の内容：\n① テキストRP回答の振り返り（10分）\n② ペアロールプレイ×3回転（20分）\n③ 管理者による採点・承認（10分）\n\n⚠️ STEP2・STEP3が未完了の場合は参加できません。',
+    link:null, linkLabel:null,
+    check:'対面研修に参加し、管理者から承認を受けましたか？',
+  },
+  {
+    id:'t5', step:'STEP 5', title:'当日フィードバック受け取り', color:'#F57C00', est:'当日中', tag:'',
+    desc:'対面研修当日中に管理者から個別フィードバックがLINEで届きます。\n\n内容：\n・良かった点1つ\n・改善点1つ\n\nフィードバックを受け取ったらこのステップを完了にしてください。\n\n⚠️ 期限：研修当日の23:59まで',
+    link:null, linkLabel:null,
+    check:'管理者からフィードバックを受け取りましたか？',
+  },
+  {
+    id:'t6', step:'STEP 6', title:'現場で実践する', color:'#00897B', est:'次回出勤日', tag:'',
+    desc:'研修で学んだ内容を現場で実践してください。\n\n現場チェックポイント：\n① 笑顔とアイコンタクトでお客様に近づく\n② 研修で学んだ第一声を使う\n③ ヒアリングで現在の機種・不満・ライフスタイルを確認\n④ PREP法でプランを提案する\n⑤ お客様の不安を言語化して解消する',
+    link:null, linkLabel:null,
+    check:'現場で研修内容を実践しましたか？',
+  },
+  {
+    id:'t7', step:'STEP 7', title:'現場責任者の承認', color:'#E53935', est:'翌営業日12時まで', tag:'',
+    desc:'現場責任者があなたの実践を確認してフィードバックを送ります。\n\n承認されると研修が修了となります。\n\n⚠️ 責任者のフィードバック期限：翌営業日12:00まで\n\nフィードバックが届いたらこのステップを完了にしてください。',
+    link:null, linkLabel:null,
+    check:'責任者からフィードバックを受け取り、承認されましたか？',
+  },
+];
+
+let currentStaff = '';
+let currentTaskIdx = 0;
+let progress = {};
+
+function saveProgress(){
+  try{ localStorage.setItem('sb_progress', JSON.stringify(progress)); }catch(e){}
+}
+function loadProgress(){
+  try{
+    const raw = localStorage.getItem('sb_progress');
+    if(raw) progress = JSON.parse(raw);
+  }catch(e){ progress = {}; }
+}
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0,0);
+}
+function goTop(){ show('s-top'); }
+function checkName(){
+  const v = document.getElementById('name-input').value.trim();
+  const btn = document.getElementById('start-btn');
+  btn.style.opacity = v ? '1' : '0.4';
+  btn.style.pointerEvents = v ? 'auto' : 'none';
+}
+function startStaff(){
+  const name = document.getElementById('name-input').value.trim();
+  if(!name) return;
+  currentStaff = name;
+  loadProgress();
+  renderList();
+  show('s-list');
+}
+function renderList(){
+  const done = progress[currentStaff] || {};
+  let cnt = 0;
+  const html = TASKS.map((t,i)=>{
+    const isDone = !!done[t.id];
+    if(isDone) cnt++;
+    return `<div class="card ${isDone?'done':''}" onclick="openTask(${i})">
+      <div class="card-head">
+        <div class="step-circle ${isDone?'done-c':''}">${isDone?'✓':i+1}</div>
+        <div style="flex:1">
+          <div style="font-size:10px;color:${t.color};font-weight:600;margin-bottom:2px">${t.step}</div>
+          <div style="font-size:13px;font-weight:600">${t.title}</div>
+          <div style="font-size:11px;color:#888;margin-top:2px">⏱ ${t.est}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+          <span class="pill ${isDone?'pill-done':'pill-todo'}">${isDone?'完了':'未完了'}</span>
+          ${t.tag?`<span class="pill pill-add">${t.tag}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('task-list').innerHTML = html;
+  document.getElementById('list-name').textContent = currentStaff+'さん';
+  const pct = Math.round(cnt/TASKS.length*100);
+  document.getElementById('list-pct').textContent = pct+'%';
+  document.getElementById('list-bar').style.width = pct+'%';
+}
+function openTask(idx){
+  currentTaskIdx = idx;
+  const t = TASKS[idx];
+  const isDone = !!(progress[currentStaff]||{})[t.id];
+  document.getElementById('task-step-lbl').textContent = t.step;
+  document.getElementById('task-title-main').textContent = t.title;
+  document.getElementById('task-header').style.background = t.color;
+  const linkHtml = t.link ? `<a href="${t.link}" class="link-btn" style="color:${t.color};border-color:${t.color}">${t.linkLabel} →</a>` : '';
+  document.getElementById('task-body').innerHTML = `
+    <div class="detail-box">${t.desc}</div>
+    ${linkHtml}
+    <div class="check-box">
+      <div style="font-size:11px;color:#888;margin-bottom:5px">完了チェック</div>
+      <div style="font-size:13px;color:#1a1a2e">${t.check}</div>
+    </div>
+  `;
+  const cb = document.getElementById('complete-btn');
+  const ub = document.getElementById('undo-btn');
+  cb.style.background = t.color;
+  cb.style.borderColor = t.color;
+  if(isDone){
+    cb.textContent = '✓ 完了済み';
+    cb.style.pointerEvents = 'none';
+    cb.style.opacity = '0.7';
+    ub.style.display = 'block';
+  } else {
+    cb.textContent = '✓ このステップを完了する';
+    cb.style.pointerEvents = 'auto';
+    cb.style.opacity = '1';
+    ub.style.display = 'none';
+  }
+  show('s-task');
+}
+function completeTask(){
+  const t = TASKS[currentTaskIdx];
+  if(!progress[currentStaff]) progress[currentStaff] = {};
+  progress[currentStaff][t.id] = true;
+  saveProgress();
+  openTask(currentTaskIdx);
+}
+function undoTask(){
+  const t = TASKS[currentTaskIdx];
+  if(progress[currentStaff]) delete progress[currentStaff][t.id];
+  saveProgress();
+  openTask(currentTaskIdx);
+}
+function backToList(){
+  renderList();
+  show('s-list');
+}
+function showAdmin(){
+  loadProgress();
+  renderAdmin();
+  show('s-admin');
+}
+function renderAdmin(){
+  const allNames = Object.keys(progress);
+  const staffData = allNames.map(name=>({
+    name,
+    done: TASKS.map(t=>!!(progress[name]&&progress[name][t.id]))
+  }));
+  const listHtml = staffData.length===0
+    ? '<div style="text-align:center;padding:24px;color:#888;font-size:13px">まだデータがありません</div>'
+    : staffData.map(s=>{
+        const cnt = s.done.filter(Boolean).length;
+        const pct = Math.round(cnt/TASKS.length*100);
+        const initials = s.name.replace(/\s/g,'').slice(0,2);
+        const col = pct===100?'#06C755':pct>0?'#1A73E8':'#888';
+        return `<div class="staff-row">
+          <div class="avatar">${initials}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600">${s.name}</div>
+            <div style="display:flex;gap:3px;margin-top:5px">
+              ${s.done.map((d,i)=>`<div style="width:20px;height:20px;border-radius:50%;background:${d?TASKS[i].color:'#eee'};display:flex;align-items:center;justify-content:center;font-size:9px;color:#fff">${d?'✓':''}</div>`).join('')}
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:16px;font-weight:700;color:${col}">${pct}%</div>
+            <div style="font-size:10px;color:#888">${cnt}/${TASKS.length}完了</div>
+          </div>
+        </div>`;
+      }).join('');
+  document.getElementById('staff-list').innerHTML = listHtml;
+  const total = staffData.length;
+  const completed = staffData.filter(s=>s.done.every(Boolean)).length;
+  const started = staffData.filter(s=>s.done.some(Boolean)&&!s.done.every(Boolean)).length;
+  const avgPct = total ? Math.round(staffData.reduce((a,s)=>a+s.done.filter(Boolean).length,0)/(total*TASKS.length)*100) : 0;
+  document.getElementById('summary-cards').innerHTML = [
+    {lbl:'スタッフ数', val:total+'名', col:'#1a1a2e'},
+    {lbl:'修了者', val:completed+'名', col:'#06C755'},
+    {lbl:'進行中', val:started+'名', col:'#1A73E8'},
+    {lbl:'平均進捗', val:avgPct+'%', col:avgPct>=80?'#06C755':'#888'},
+  ].map(c=>`<div class="stat-card">
+    <div class="stat-lbl">${c.lbl}</div>
+    <div class="stat-val" style="color:${c.col}">${c.val}</div>
+  </div>`).join('');
+  document.getElementById('step-bars').innerHTML = TASKS.map((t,i)=>{
+    const cnt2 = staffData.filter(s=>s.done[i]).length;
+    const pct2 = total ? Math.round(cnt2/total*100) : 0;
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+        <div style="font-size:11px;color:#888">${t.step}　${t.title}</div>
+        <div style="font-size:11px;font-weight:600;color:${t.color}">${pct2}%</div>
+      </div>
+      <div style="height:5px;background:#eee;border-radius:3px;overflow:hidden">
+        <div style="height:100%;background:${t.color};border-radius:3px;width:${pct2}%"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach((el,i)=>{
+    el.classList.toggle('active',(i===0&&tab==='progress')||(i===1&&tab==='summary'));
+  });
+  document.getElementById('tab-progress').style.display = tab==='progress'?'block':'none';
+  document.getElementById('tab-summary').style.display = tab==='summary'?'block':'none';
+}
+loadProgress();
+</script>
+</body>
+</html>
