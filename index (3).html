@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0F766E">
+<title>ASXEED_研修 ToDo</title>
+<meta property="og:title" content="ASXEED_研修 ToDo">
+<meta property="og:description" content="ASXEED 営業研修 ToDoシステム - ステップで「見て → 学んで → 実践する」">
+<meta property="og:type" content="website">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+
+<style>
+/* ============== Design Tokens ============== */
+:root {
+  --bg: #FAF6F0;
+  --bg-elev: #FFFFFF;
+  --bg-warm: #F5EFE5;
+  --ink: #1C1917;
+  --ink-soft: #57534E;
+  --ink-mute: #A8A29E;
+  --line: #E7E2D9;
+  --teal: #0F766E;
+  --teal-dark: #115E59;
+  --teal-soft: #CCFBF1;
+  --coral: #EA580C;
+  --coral-soft: #FED7AA;
+  --green: #16A34A;
+  --green-soft: #DCFCE7;
+  --amber: #D97706;
+  --amber-soft: #FEF3C7;
+  --shadow-sm: 0 1px 2px rgba(28,25,23,.04), 0 1px 1px rgba(28,25,23,.03);
+  --shadow-md: 0 4px 12px rgba(28,25,23,.06), 0 2px 4px rgba(28,25,23,.04);
+  --shadow-lg: 0 12px 32px rgba(28,25,23,.08), 0 4px 12px rgba(28,25,23,.05);
+  --radius-sm: 8px;
+  --radius: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  background: var(--bg);
+  background-image:
+    radial-gradient(at 20% 0%, rgba(204,251,241,.5) 0%, transparent 50%),
+    radial-gradient(at 90% 10%, rgba(254,215,170,.35) 0%, transparent 45%);
+  background-attachment: fixed;
+  font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 400;
+  color: var(--ink);
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.app {
+  max-width: 540px;
+  margin: 0 auto;
+  padding: 24px 20px 80px;
+  position: relative;
+}
+
+/* ============== Brand bar ============== */
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 28px; padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.brand-mark {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--teal) 0%, var(--teal-dark) 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-weight: 900; color: #fff; font-size: 14px;
+  letter-spacing: -0.02em;
+  box-shadow: 0 2px 8px rgba(15,118,110,.3);
+}
+.brand-name {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-weight: 700; font-size: 14px;
+  color: var(--ink); letter-spacing: 0.05em;
+}
+
+/* ============== Hero ============== */
+.hero {
+  margin-bottom: 32px;
+  opacity: 0;
+  animation: fadeUp .7s .1s ease-out forwards;
+}
+.hero-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 5px 12px;
+  background: var(--teal-soft); color: var(--teal-dark);
+  border-radius: 999px; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.1em; margin-bottom: 14px;
+}
+.hero-tag::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--teal);
+  animation: pulse 2s ease-in-out infinite;
+}
+.hero-tag.bonus { background: var(--coral-soft); color: #9A3412; }
+.hero-tag.bonus::before { background: var(--coral); }
+
+.hero h1 {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-weight: 900; font-size: 32px;
+  line-height: 1.25; letter-spacing: -0.01em;
+  color: var(--ink); margin-bottom: 10px;
+}
+.hero p { font-size: 15px; color: var(--ink-soft); line-height: 1.7; }
+
+/* ============== Deadline card ============== */
+.deadline-card {
+  background: linear-gradient(135deg, #FFFBF5 0%, #FFF6E8 100%);
+  border: 1px solid var(--coral-soft);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px; margin-bottom: 24px;
+  display: flex; align-items: center; gap: 14px;
+  opacity: 0;
+  animation: fadeUp .7s .2s ease-out forwards;
+  position: relative; overflow: hidden;
+}
+.deadline-card::before {
+  content: ''; position: absolute;
+  top: -20px; right: -20px;
+  width: 80px; height: 80px;
+  background: radial-gradient(circle, var(--coral-soft) 0%, transparent 70%);
+  opacity: .6;
+}
+.deadline-icon { font-size: 22px; flex-shrink: 0; z-index: 1; }
+.deadline-text { z-index: 1; }
+.deadline-label {
+  font-size: 11px; font-weight: 700;
+  color: var(--coral); letter-spacing: 0.12em; margin-bottom: 2px;
+}
+.deadline-value {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-weight: 700; font-size: 16px; color: var(--ink);
+}
+
+/* ============== Overview / Progress ============== */
+.overview {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px; margin-bottom: 32px;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: var(--shadow-sm);
+  opacity: 0;
+  animation: fadeUp .7s .3s ease-out forwards;
+}
+.overview-meta { display: flex; align-items: baseline; gap: 4px; }
+.overview-num {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-weight: 900; font-size: 28px;
+  color: var(--teal); font-feature-settings: "tnum"; line-height: 1;
+}
+.overview-total { font-size: 14px; color: var(--ink-mute); font-weight: 500; }
+.overview-label { font-size: 13px; color: var(--ink-soft); font-weight: 500; }
+.overview-id {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-weight: 700; font-size: 12px;
+  padding: 4px 10px;
+  background: var(--bg-warm); color: var(--ink-soft);
+  border-radius: 6px; letter-spacing: 0.05em;
+}
+
+/* Progress mode */
+.overview.progress-overview {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+}
+.progress-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.progress-right {
+  display: flex; flex-direction: column;
+  align-items: flex-end; gap: 6px;
+}
+.progress-bar {
+  height: 10px;
+  background: var(--bg-warm);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--teal) 0%, #14B8A6 100%);
+  border-radius: 999px;
+  transition: width 1.2s cubic-bezier(.2,.8,.2,1);
+  position: relative;
+  overflow: hidden;
+}
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent 30%, rgba(255,255,255,.5) 50%, transparent 70%);
+  animation: shimmer 2.4s infinite;
+}
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+.progress-percent {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-weight: 900;
+  font-size: 22px;
+  color: var(--teal);
+  font-feature-settings: "tnum";
+  text-align: right;
+}
+
+.status-pill {
+  display: inline-flex; align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 0.08em; white-space: nowrap;
+}
+.status-pill.enrolled { background: var(--teal-soft); color: var(--teal-dark); }
+.status-pill.completed { background: var(--green-soft); color: #15803D; }
+
+/* ============== Celebration banner (all completed) ============== */
+.celebration {
+  text-align: center;
+  margin: 0 0 32px;
+  padding: 28px 24px;
+  background: linear-gradient(135deg, #FEF3C7 0%, #FCE7F3 100%);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--coral-soft);
+  box-shadow: var(--shadow-md);
+  opacity: 0;
+  animation: fadeUp .8s .35s ease-out forwards;
+}
+.celebration-icon {
+  font-size: 44px;
+  margin-bottom: 10px;
+  animation: bounce 2.4s ease-in-out infinite;
+}
+@keyframes bounce {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50% { transform: translateY(-10px) rotate(8deg); }
+}
+.celebration-title {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-weight: 900; font-size: 22px;
+  color: var(--ink); margin-bottom: 6px;
+}
+.celebration-text { font-size: 13px; color: var(--ink-soft); }
+
+/* ============== Steps ============== */
+.steps-title {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-weight: 700; font-size: 18px;
+  margin-bottom: 4px; color: var(--ink);
+  opacity: 0;
+  animation: fadeUp .7s .4s ease-out forwards;
+}
+.steps-desc {
+  font-size: 13px; color: var(--ink-mute);
+  margin-bottom: 20px;
+  opacity: 0;
+  animation: fadeUp .7s .4s ease-out forwards;
+}
+
+.steps { position: relative; padding-left: 28px; }
+.steps::before {
+  content: ''; position: absolute;
+  left: 13px; top: 12px; bottom: 12px;
+  width: 2px;
+  background: linear-gradient(180deg, var(--teal) 0%, var(--line) 50%, var(--line) 100%);
+  border-radius: 2px;
+  opacity: 0;
+  animation: drawLine 1s .5s ease-out forwards;
+  transform-origin: top;
+}
+@keyframes drawLine {
+  from { opacity: 0; transform: scaleY(0); }
+  to { opacity: 1; transform: scaleY(1); }
+}
+
+.step {
+  position: relative; margin-bottom: 18px;
+  opacity: 0;
+  animation: fadeUp .6s ease-out forwards;
+}
+.step:nth-child(1) { animation-delay: .5s; }
+.step:nth-child(2) { animation-delay: .58s; }
+.step:nth-child(3) { animation-delay: .66s; }
+.step:nth-child(4) { animation-delay: .74s; }
+.step:nth-child(5) { animation-delay: .82s; }
+.step:nth-child(6) { animation-delay: .9s; }
+.step:nth-child(7) { animation-delay: .98s; }
+.step:nth-child(8) { animation-delay: 1.06s; }
+
+.step-marker {
+  position: absolute;
+  left: -28px; top: 14px;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: var(--bg-elev);
+  border: 2px solid var(--line);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-weight: 900; font-size: 12px;
+  color: var(--ink-mute);
+  z-index: 2;
+  transition: all .3s;
+}
+.step.current .step-marker {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+  box-shadow: 0 0 0 6px rgba(15,118,110,.12);
+  animation: pulseRing 2s ease-in-out infinite;
+}
+.step.completed .step-marker {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+  font-size: 14px;
+  box-shadow: 0 2px 6px rgba(22,163,74,.25);
+}
+@keyframes pulseRing {
+  0%, 100% { box-shadow: 0 0 0 6px rgba(15,118,110,.12); }
+  50% { box-shadow: 0 0 0 10px rgba(15,118,110,.06); }
+}
+
+.step-card {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  transition: all .25s ease;
+}
+.step.current .step-card {
+  background: linear-gradient(135deg, #FFFFFF 0%, #F0FDFA 100%);
+  border-color: var(--teal);
+  box-shadow: 0 4px 16px rgba(15,118,110,.12);
+}
+.step.completed .step-card {
+  background: linear-gradient(135deg, #FAFAF7 0%, #F0FDF4 100%);
+  border-color: var(--green-soft);
+}
+.step.completed .step-title { color: var(--ink-soft); }
+.step.completed .step-body {
+  opacity: .55;
+  text-decoration: line-through;
+  text-decoration-color: var(--ink-mute);
+  text-decoration-thickness: 1px;
+}
+
+.step-head {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 6px;
+}
+.step-icon { font-size: 18px; line-height: 1; }
+.step-title {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-weight: 700; font-size: 15px;
+  color: var(--ink); flex: 1;
+}
+.step-badge {
+  font-size: 10px; font-weight: 700;
+  padding: 3px 8px; border-radius: 999px;
+  letter-spacing: 0.05em; white-space: nowrap;
+}
+.step-badge.required { background: var(--coral-soft); color: #9A3412; }
+.step-badge.now { background: var(--teal); color: #fff; }
+.step-badge.field { background: var(--amber-soft); color: var(--amber); }
+.step-badge.done { background: var(--green-soft); color: #15803D; }
+
+.step-body {
+  font-size: 13px; color: var(--ink-soft);
+  line-height: 1.6; margin-bottom: 12px;
+}
+
+.step-action {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 10px 16px;
+  background: var(--teal); color: #fff;
+  border-radius: 10px;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-weight: 700; font-size: 13px;
+  text-decoration: none;
+  transition: all .2s;
+  box-shadow: 0 2px 6px rgba(15,118,110,.25);
+}
+.step-action:hover, .step-action:active {
+  background: var(--teal-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15,118,110,.3);
+}
+.step-action::after { content: '→'; font-size: 15px; margin-left: 2px; }
+
+.step-pending {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  background: var(--bg-warm); color: var(--ink-mute);
+  border-radius: 10px;
+  font-size: 12px; font-weight: 500;
+}
+.step-pending::before { content: '🔧'; font-size: 13px; }
+
+.step-offline {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 14px;
+  background: var(--amber-soft); color: var(--amber);
+  border-radius: 10px;
+  font-size: 12px; font-weight: 700;
+}
+
+.step.completed .step-action,
+.step.completed .step-pending,
+.step.completed .step-offline {
+  opacity: .5;
+}
+
+/* ============== Modules section ============== */
+.modules-section {
+  margin-top: 36px; padding-top: 28px;
+  border-top: 1px dashed var(--line);
+}
+.modules-title {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-weight: 700; font-size: 16px;
+  margin-bottom: 14px; color: var(--ink);
+}
+.module-list { display: flex; flex-direction: column; gap: 8px; }
+.module-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+.module-num {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-weight: 900; font-size: 11px;
+  color: var(--teal); background: var(--teal-soft);
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.module-name { flex: 1; color: var(--ink); font-weight: 500; }
+.module-duration { font-size: 11px; color: var(--ink-mute); font-feature-settings: "tnum"; }
+
+/* ============== Footer ============== */
+.foot {
+  margin-top: 48px; padding-top: 24px;
+  border-top: 1px solid var(--line);
+  text-align: center;
+  font-size: 11px; color: var(--ink-mute);
+  letter-spacing: 0.05em;
+}
+.foot strong {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  color: var(--ink-soft); font-weight: 700;
+}
+
+/* ============== States ============== */
+.loading, .error {
+  min-height: 60vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center; padding: 40px 20px;
+}
+.spinner {
+  width: 36px; height: 36px;
+  border: 3px solid var(--line);
+  border-top-color: var(--teal);
+  border-radius: 50%;
+  animation: spin .9s linear infinite;
+  margin-bottom: 16px;
+}
+.loading-text, .error-text { font-size: 14px; color: var(--ink-soft); }
+.error-icon { font-size: 36px; margin-bottom: 12px; }
+.error-title {
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-weight: 700; font-size: 18px;
+  color: var(--ink); margin-bottom: 8px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .6; transform: scale(.9); }
+}
+
+/* iPad / tablet */
+@media (min-width: 640px) {
+  .app { max-width: 600px; padding: 32px 28px 100px; }
+  .hero h1 { font-size: 36px; }
+}
+</style>
+</head>
+<body>
+
+<div class="app" id="app">
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">研修内容を読み込み中...</div>
+  </div>
+</div>
+
+<script>
+// GAS Web App URL
+const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwWi7UG0f2-r3hCjdiKy_zPbnCk6fOrZVMIg0sYvq8YHpupYZEB7YbJrFW0SxOzZAQQ3w/exec';
+
+function getCurriculumId() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('c');
+}
+function getUserId() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('u');
+}
+
+async function init() {
+  const id = getCurriculumId();
+  const userId = getUserId();
+  
+  if (!id) {
+    renderError('研修が指定されていません', 'LINEから研修カードをタップしてアクセスしてください。');
+    return;
+  }
+  
+  try {
+    const data = await fetchCurriculum(id, userId);
+    if (data.error) {
+      renderError('研修が見つかりません', 'ID「' + id + '」のカリキュラムが見つかりませんでした。');
+      return;
+    }
+    renderCurriculum(data);
+  } catch (err) {
+    console.error(err);
+    renderError('読み込みエラー', 'ネットワークまたはサーバーの問題が発生しました。少し時間をおいてから再度お試しください。');
+  }
+}
+
+async function fetchCurriculum(id, userId) {
+  let url = GAS_API_URL + '?api=curriculum&id=' + encodeURIComponent(id);
+  if (userId) {
+    url += '&u=' + encodeURIComponent(userId);
+  }
+  const res = await fetch(url, { redirect: 'follow' });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return await res.json();
+}
+
+function buildSteps(data) {
+  const isM001 = (data.id === 'M001');
+  const stepProgress = (data.progress && data.progress.steps) ? data.progress.steps : null;
+  
+  const allSteps = [
+    {
+      key: 'video',
+      icon: '📺',
+      title: '動画視聴',
+      body: 'まずは研修動画を視聴し、内容を理解しましょう。',
+      badge: { text: 'まずここから', class: 'now' },
+      action: data.modules && data.modules.length > 0 && data.modules[0].videoUrl
+        ? { type: 'link', url: data.modules[0].videoUrl, label: '動画を見る' }
+        : { type: 'pending', label: '動画準備中' }
+    },
+    {
+      key: 'test',
+      icon: '✍️',
+      title: '確認テスト',
+      body: '80点以上で合格。理解度をチェックしましょう。',
+      badge: { text: '80点合格', class: 'required' },
+      action: data.testUrl
+        ? { type: 'link', url: data.testUrl, label: 'テストを受ける' }
+        : { type: 'pending', label: 'テスト準備中' }
+    },
+    {
+      key: 'roleplay1',
+      icon: '🎤',
+      title: 'ロープレ①',
+      body: '実際の会話を想定したロープレを録音・提出。現場OKが出るまで再提出可能。',
+      badge: { text: 'OK出るまで', class: 'required' },
+      action: data.roleplay1Url
+        ? { type: 'link', url: data.roleplay1Url, label: 'ロープレ提出' }
+        : { type: 'pending', label: 'フォーム準備中' }
+    },
+  ];
+  
+  if (data.hasInPerson && !isM001) {
+    allSteps.push({
+      key: 'inPerson',
+      icon: '👥',
+      title: '対面研修',
+      body: '会場で実地研修を受けます。日程は別途連絡。',
+      badge: { text: '対面', class: 'field' },
+      action: { type: 'offline', label: '日程は別途連絡' }
+    });
+    allSteps.push({
+      key: 'roleplay2',
+      icon: '🎤',
+      title: 'ロープレ②',
+      body: '対面研修後、再度ロープレを提出。現場OKが出るまで再提出可能。',
+      badge: { text: 'OK出るまで', class: 'required' },
+      action: data.roleplay2Url
+        ? { type: 'link', url: data.roleplay2Url, label: 'ロープレ提出' }
+        : { type: 'pending', label: 'フォーム準備中' }
+    });
+    allSteps.push({
+      key: 'fb',
+      icon: '💬',
+      title: '当日FB',
+      body: '上司から当日中にフィードバックを受けます。',
+      badge: { text: '上司から', class: 'field' },
+      action: { type: 'offline', label: '上司から直接' }
+    });
+  }
+  
+  allSteps.push({
+    key: 'fieldPractice',
+    icon: '🏪',
+    title: '現場で実践',
+    body: '実際の店舗で学んだことを実践します。',
+    badge: { text: '実地', class: 'field' },
+    action: { type: 'offline', label: '現場で実践' }
+  });
+  
+  allSteps.push({
+    key: 'approval',
+    icon: '✅',
+    title: '現場責任者の承認',
+    body: '現場責任者から最終承認をもらえば修了です。',
+    badge: { text: '修了', class: 'field' },
+    action: { type: 'offline', label: '責任者の判断' }
+  });
+  
+  // 完了フラグ付与
+  allSteps.forEach(function(step) {
+    step.completed = stepProgress ? !!stepProgress[step.key] : false;
+  });
+  
+  return allSteps;
+}
+
+function renderCurriculum(data) {
+  const steps = buildSteps(data);
+  const isBonus = (data.type === '番外編');
+  const progress = data.progress;
+  const hasProgress = progress && progress.enrolled;
+  
+  // 完了数と現在ステップ
+  const completedCount = steps.filter(function(s){ return s.completed; }).length;
+  const percentage = steps.length > 0 ? Math.round((completedCount / steps.length) * 100) : 0;
+  const isAllCompleted = completedCount === steps.length && steps.length > 0;
+  
+  let currentIndex = -1;
+  for (let i = 0; i < steps.length; i++) {
+    if (!steps[i].completed) { currentIndex = i; break; }
+  }
+  
+  // ステップHTML
+  const stepsHtml = steps.map(function(step, i) {
+    const isCurrent = !isAllCompleted && (i === currentIndex);
+    const isCompleted = step.completed;
+    
+    let actionHtml = '';
+    if (step.action.type === 'link') {
+      actionHtml = '<a class="step-action" href="' + step.action.url + '" target="_blank" rel="noopener">' + step.action.label + '</a>';
+    } else if (step.action.type === 'pending') {
+      actionHtml = '<span class="step-pending">' + step.action.label + '</span>';
+    } else if (step.action.type === 'offline') {
+      actionHtml = '<span class="step-offline">' + step.action.label + '</span>';
+    }
+    
+    const markerContent = isCompleted ? '✓' : (i + 1);
+    const stepClass = 'step' + (isCurrent ? ' current' : '') + (isCompleted ? ' completed' : '');
+    const badgeClass = isCompleted ? 'done' : step.badge.class;
+    const badgeText = isCompleted ? '完了' : step.badge.text;
+    
+    return (
+      '<div class="' + stepClass + '">' +
+        '<div class="step-marker">' + markerContent + '</div>' +
+        '<div class="step-card">' +
+          '<div class="step-head">' +
+            '<span class="step-icon">' + step.icon + '</span>' +
+            '<span class="step-title">' + step.title + '</span>' +
+            '<span class="step-badge ' + badgeClass + '">' + badgeText + '</span>' +
+          '</div>' +
+          '<p class="step-body">' + step.body + '</p>' +
+          actionHtml +
+        '</div>' +
+      '</div>'
+    );
+  }).join('');
+  
+  // モジュールHTML
+  const modulesHtml = data.modules && data.modules.length > 0
+    ? '<div class="modules-section">' +
+        '<div class="modules-title">📚 含まれる動画モジュール</div>' +
+        '<div class="module-list">' +
+          data.modules.map(function(m){
+            return '<div class="module-item">' +
+              '<span class="module-num">' + m.order + '</span>' +
+              '<span class="module-name">' + m.name + '</span>' +
+              (m.duration ? '<span class="module-duration">' + m.duration + '</span>' : '') +
+            '</div>';
+          }).join('') +
+        '</div>' +
+      '</div>'
+    : '';
+  
+  // オーバービュー(進捗あり/なしで分岐)
+  let overviewHtml;
+  if (hasProgress) {
+    const statusPill = progress.status === '修了'
+      ? '<div class="status-pill completed">🎊 修了</div>'
+      : '<div class="status-pill enrolled">受講中</div>';
+    overviewHtml =
+      '<div class="overview progress-overview">' +
+        '<div class="progress-top">' +
+          '<div>' +
+            '<div class="overview-label">進捗状況</div>' +
+            '<div class="overview-meta">' +
+              '<span class="overview-num">' + completedCount + '</span>' +
+              '<span class="overview-total">/ ' + steps.length + ' 完了</span>' +
+            '</div>' +
+          '</div>' +
+          '<div class="progress-right">' +
+            '<div class="overview-id">' + data.id + '</div>' +
+            statusPill +
+          '</div>' +
+        '</div>' +
+        '<div class="progress-bar"><div class="progress-fill" style="width:' + percentage + '%"></div></div>' +
+        '<div class="progress-percent">' + percentage + '%</div>' +
+      '</div>';
+  } else {
+    overviewHtml =
+      '<div class="overview">' +
+        '<div>' +
+          '<div class="overview-label">研修ステップ</div>' +
+          '<div class="overview-meta">' +
+            '<span class="overview-num">' + steps.length + '</span>' +
+            '<span class="overview-total">ステップ</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="overview-id">' + data.id + '</div>' +
+      '</div>';
+  }
+  
+  // 修了バナー
+  const celebrationHtml = isAllCompleted
+    ? '<div class="celebration">' +
+        '<div class="celebration-icon">🎊</div>' +
+        '<div class="celebration-title">研修完了!お疲れさまでした!</div>' +
+        '<div class="celebration-text">' + (progress && progress.approver ? '承認者: ' + progress.approver : '全ステップ完了済み') + '</div>' +
+      '</div>'
+    : '';
+  
+  // 期限表示
+  const deadlineText = hasProgress && progress.deadlineDate
+    ? progress.deadlineDate + 'まで'
+    : '受講開始から' + data.deadlineDays + '日間';
+  
+  document.getElementById('app').innerHTML =
+    '<div class="brand">' +
+      '<div class="brand-mark">A</div>' +
+      '<div class="brand-name">ASXEED_研修 ToDo</div>' +
+    '</div>' +
+    '<header class="hero">' +
+      '<span class="hero-tag ' + (isBonus ? 'bonus' : '') + '">' + (isBonus ? '番外編' : 'メイン研修') + '</span>' +
+      '<h1>' + data.name + '</h1>' +
+      '<p>' + data.description + '</p>' +
+    '</header>' +
+    '<div class="deadline-card">' +
+      '<span class="deadline-icon">⏰</span>' +
+      '<div class="deadline-text">' +
+        '<div class="deadline-label">DEADLINE</div>' +
+        '<div class="deadline-value">' + deadlineText + '</div>' +
+      '</div>' +
+    '</div>' +
+    overviewHtml +
+    celebrationHtml +
+    '<div class="steps-title">📋 研修フロー</div>' +
+    '<div class="steps-desc">' + (isAllCompleted ? '全ステップ完了済みです。' : '上から順番に進めてください。') + '</div>' +
+    '<div class="steps">' + stepsHtml + '</div>' +
+    modulesHtml +
+    '<div class="foot">' +
+      '<strong>ASXEED Inc.</strong> × 営業研修ToDoシステム<br>' +
+      '© 2026 株式会社ASXEED' +
+    '</div>';
+}
+
+function renderError(title, msg) {
+  document.getElementById('app').innerHTML =
+    '<div class="error">' +
+      '<div class="error-icon">😢</div>' +
+      '<div class="error-title">' + title + '</div>' +
+      '<div class="error-text">' + msg + '</div>' +
+    '</div>';
+}
+
+init();
+</script>
+
+</body>
+</html>
