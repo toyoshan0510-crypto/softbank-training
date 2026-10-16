@@ -464,6 +464,50 @@ body {
 .module-name { flex: 1; color: var(--ink); font-weight: 500; }
 .module-duration { font-size: 11px; color: var(--ink-mute); font-feature-settings: "tnum"; }
 
+/* ============== Video cards ============== */
+.video-card {
+  background: var(--bg-elev);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 14px;
+  box-shadow: var(--shadow-sm);
+}
+.video-card.done { border-color: var(--green-soft); background: linear-gradient(135deg, #FAFAF7 0%, #F0FDF4 100%); }
+.video-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.video-title { flex: 1; min-width: 0; font-weight: 700; font-size: 14px; word-break: break-word; }
+.video-duration { font-size: 11px; color: var(--ink-mute); font-feature-settings: "tnum"; }
+.video-done-badge {
+  display: none;
+  font-size: 11px; font-weight: 700;
+  padding: 3px 10px; border-radius: 999px;
+  background: var(--green-soft); color: #15803D; white-space: nowrap;
+}
+.video-card.done .video-done-badge { display: inline-block; }
+.video-frame {
+  position: relative; width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #000; border-radius: var(--radius-sm); overflow: hidden;
+}
+.video-frame iframe, .video-frame > div:not(.video-overlay) { position: absolute; inset: 0; width: 100%; height: 100%; }
+.video-overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; padding: 16px; text-align: center;
+  background: var(--bg-warm); color: var(--ink-soft);
+  font-size: 13px; font-weight: 500;
+}
+.video-overlay .ov-icon { font-size: 28px; }
+.video-note { font-size: 11px; color: var(--ink-mute); margin-top: 8px; line-height: 1.5; }
+.video-card.locked .video-title { color: var(--ink-mute); }
+
+.step-action.disabled {
+  background: var(--line); color: var(--ink-mute);
+  box-shadow: none; cursor: not-allowed; pointer-events: none;
+}
+.step-action.disabled::after { content: '🔒'; font-size: 13px; }
+.gate-note { font-size: 12px; color: var(--amber); font-weight: 700; margin-top: 8px; }
+
 /* ============== Footer ============== */
 .foot {
   margin-top: 48px; padding-top: 24px;
@@ -582,8 +626,8 @@ function buildSteps(data) {
       title: '動画視聴',
       body: 'まずは研修動画を視聴し、内容を理解しましょう。',
       badge: { text: 'まずここから', class: 'now' },
-      action: data.modules && data.modules.length > 0 && data.modules[0].videoUrl
-        ? { type: 'link', url: data.modules[0].videoUrl, label: '動画を見る' }
+      action: data.modules && data.modules.length > 0
+        ? { type: 'anchor', url: '#videos', label: '動画を見る' }
         : { type: 'pending', label: '動画準備中' }
     },
     {
@@ -664,6 +708,8 @@ function buildSteps(data) {
 }
 
 function renderCurriculum(data) {
+  currentData = data;
+  videoModules = sortedModules(data);
   const steps = buildSteps(data);
   const isBonus = (data.type === '番外編');
   const progress = data.progress;
@@ -685,7 +731,11 @@ function renderCurriculum(data) {
     const isCompleted = step.completed;
     
     let actionHtml = '';
-    if (step.action.type === 'link') {
+    if (step.key === 'test' && step.action.type === 'link') {
+      actionHtml = '<div id="test-action">' + testActionHtml(step.action.url, watchAllDone(data)) + '</div>';
+    } else if (step.action.type === 'anchor') {
+      actionHtml = '<a class="step-action" href="' + step.action.url + '">' + step.action.label + '</a>';
+    } else if (step.action.type === 'link') {
       actionHtml = '<a class="step-action" href="' + step.action.url + '" target="_blank" rel="noopener">' + step.action.label + '</a>';
     } else if (step.action.type === 'pending') {
       actionHtml = '<span class="step-pending">' + step.action.label + '</span>';
@@ -715,18 +765,11 @@ function renderCurriculum(data) {
   }).join('');
   
   // モジュールHTML
-  const modulesHtml = data.modules && data.modules.length > 0
-    ? '<div class="modules-section">' +
-        '<div class="modules-title">📚 含まれる動画モジュール</div>' +
-        '<div class="module-list">' +
-          data.modules.map(function(m){
-            return '<div class="module-item">' +
-              '<span class="module-num">' + m.order + '</span>' +
-              '<span class="module-name">' + m.name + '</span>' +
-              (m.duration ? '<span class="module-duration">' + m.duration + '</span>' : '') +
-            '</div>';
-          }).join('') +
-        '</div>' +
+  const modulesHtml = videoModules.length > 0
+    ? '<div class="modules-section" id="videos">' +
+        '<div class="modules-title">📺 研修動画</div>' +
+        (getUserId() ? '' : '<div class="video-note" style="margin:-6px 0 12px">※ LINEのリンクから開くと視聴が記録されます。</div>') +
+        videoModules.map(videoCardHtml).join('') +
       '</div>'
     : '';
   
@@ -809,6 +852,244 @@ function renderCurriculum(data) {
       '<strong>ASXEED Inc.</strong> × 営業研修ToDoシステム<br>' +
       '© 2026 株式会社ASXEED' +
     '</div>';
+
+  initVideos();
+}
+
+/* ============== Video player / watch tracking ============== */
+const MAX_RATE = 1.25;
+const SEND_INTERVAL = 15;   // 再生秒数がこれだけ溜まるごとに送信
+const SEEK_TOLERANCE = 2;   // 最大到達位置からこの秒数を超えて先へ行ったら巻き戻す
+
+let currentData = null;
+let videoModules = [];
+const vstate = {};          // index -> 状態
+let ytApiPromise = null;
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+function modId(m) { return m.id || m.moduleId || m.moduleID || ''; }
+function sortedModules(data) {
+  const list = (data.modules || []).slice();
+  list.sort(function(a, b) { return (Number(a.order) || 0) - (Number(b.order) || 0); });
+  return list;
+}
+function extractVideoId(url) {
+  if (!url) return null;
+  const s = String(url).trim();
+  const m = s.match(/(?:youtu\.be\/|[?&]v=|\/embed\/|\/shorts\/|\/live\/)([A-Za-z0-9_-]{11})/);
+  if (m) return m[1];
+  return /^[A-Za-z0-9_-]{11}$/.test(s) ? s : null;
+}
+function watchAllDone(data) { return !!(data && data.watch && data.watch.allDone); }
+function watchFor(data, m) {
+  const w = data && data.watch && data.watch.modules;
+  let r = null;
+  if (Array.isArray(w)) {
+    r = w.find(function(x) { return String(x.moduleId || x.id || x.m) === String(modId(m)); });
+  } else if (w) {
+    r = w[modId(m)];
+  }
+  r = r || {};
+  return { watched: Number(r.watched) || 0, pos: Number(r.pos) || 0, done: !!r.done };
+}
+function testActionHtml(url, allDone) {
+  if (allDone) {
+    return '<a class="step-action" href="' + url + '" target="_blank" rel="noopener">テストを受ける</a>';
+  }
+  return '<span class="step-action disabled">テストを受ける</span>' +
+         '<div class="gate-note">動画をすべて見ると受けられます</div>';
+}
+
+function videoCardHtml(m, i) {
+  const vid = extractVideoId(m.videoUrl);
+  const inner = vid
+    ? '<div id="player-' + i + '"></div>'
+    : '<div class="video-overlay"><span class="ov-icon">🔧</span>準備中</div>';
+  return '<div class="video-card" id="vcard-' + i + '">' +
+    '<div class="video-head">' +
+      '<span class="module-num">' + esc(m.order != null ? m.order : i + 1) + '</span>' +
+      '<span class="video-title">' + esc(m.name) + '</span>' +
+      (m.duration ? '<span class="video-duration">' + esc(m.duration) + '</span>' : '') +
+      '<span class="video-done-badge">✅ 視聴済み</span>' +
+    '</div>' +
+    '<div class="video-frame" id="vframe-' + i + '">' + inner + '</div>' +
+  '</div>';
+}
+
+function loadYouTubeApi() {
+  if (ytApiPromise) return ytApiPromise;
+  ytApiPromise = new Promise(function(resolve) {
+    if (window.YT && window.YT.Player) { resolve(); return; }
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = function() { if (prev) prev(); resolve(); };
+    const s = document.createElement('script');
+    s.src = 'https://www.youtube.com/iframe_api';
+    document.head.appendChild(s);
+  });
+  return ytApiPromise;
+}
+
+function initVideos() {
+  Object.keys(vstate).forEach(function(k) { delete vstate[k]; });
+  videoModules.forEach(function(m, i) {
+    const w = watchFor(currentData, m);
+    vstate[i] = {
+      m: m, vid: extractVideoId(m.videoUrl), player: null,
+      done: w.done, maxPos: w.pos, unsent: 0, sinceSend: 0,
+      lastT: null, duration: 0, playing: false, locked: false, ended: false
+    };
+  });
+  applyLocks();
+}
+
+// 前の動画が視聴済みになるまで次はロック。ロック解除された動画にプレイヤーを作る
+function applyLocks() {
+  videoModules.forEach(function(m, i) {
+    const st = vstate[i];
+    st.locked = i > 0 && !vstate[i - 1].done;
+    const card = document.getElementById('vcard-' + i);
+    if (!card) return;
+    card.classList.toggle('done', st.done);
+    card.classList.toggle('locked', st.locked);
+    const frame = document.getElementById('vframe-' + i);
+    if (!st.vid) return; // 準備中
+    if (st.locked) {
+      if (!st.player && !frame.querySelector('.video-overlay')) {
+        frame.innerHTML = '<div class="video-overlay"><span class="ov-icon">🔒</span>前の動画を見終わると見られます</div>';
+      }
+    } else if (!st.player && !st.creating) {
+      createPlayer(i);
+    }
+  });
+}
+
+function createPlayer(i) {
+  const st = vstate[i];
+  st.creating = true;
+  const frame = document.getElementById('vframe-' + i);
+  frame.innerHTML = '<div id="player-' + i + '"></div>';
+  loadYouTubeApi().then(function() {
+    st.player = new YT.Player('player-' + i, {
+      videoId: st.vid,
+      playerVars: { playsinline: 1, rel: 0, modestbranding: 1, start: Math.floor(st.maxPos), origin: location.origin },
+      events: {
+        onReady: function() {
+          try { st.duration = st.player.getDuration() || 0; } catch (e) {}
+        },
+        onStateChange: function(e) { onPlayerState(i, e.data); },
+        onPlaybackRateChange: function() { limitRate(st); }
+      }
+    });
+  });
+}
+
+function limitRate(st) {
+  try {
+    if (st.player.getPlaybackRate() > MAX_RATE) st.player.setPlaybackRate(MAX_RATE);
+  } catch (e) {}
+}
+
+function onPlayerState(i, state) {
+  const st = vstate[i];
+  if (!st.duration) { try { st.duration = st.player.getDuration() || 0; } catch (e) {} }
+  if (state === YT.PlayerState.PLAYING) {
+    st.playing = true;
+    st.lastT = st.player.getCurrentTime();
+    limitRate(st);
+  } else if (state === YT.PlayerState.PAUSED) {
+    st.playing = false;
+    flushWatch(i, false);
+  } else if (state === YT.PlayerState.ENDED) {
+    st.playing = false;
+    st.maxPos = Math.max(st.maxPos, st.duration || 0);
+    flushWatch(i, true);
+    setTimeout(refreshWatch, 1200);
+  } else {
+    st.playing = false;
+  }
+}
+
+// 500msごとに再生位置を見て、飛ばし視聴の巻き戻しと視聴秒数のカウントを行う
+setInterval(function() {
+  Object.keys(vstate).forEach(function(k) {
+    const i = Number(k), st = vstate[i];
+    if (!st.player || !st.player.getCurrentTime) return;
+    let t;
+    try { t = st.player.getCurrentTime(); } catch (e) { return; }
+    if (typeof t !== 'number' || isNaN(t)) return;
+    limitRate(st);
+
+    // 未視聴の位置より先へシークされたら、見た位置まで戻す
+    if (t > st.maxPos + SEEK_TOLERANCE) {
+      st.player.seekTo(st.maxPos, true);
+      st.lastT = st.maxPos;
+      return;
+    }
+    if (st.playing && st.lastT !== null) {
+      const delta = t - st.lastT;
+      // 通常再生の範囲の増分だけ数える（シークによる大きなジャンプは数えない）
+      if (delta > 0 && delta < 2) {
+        st.unsent += delta;
+        st.sinceSend += delta;
+        if (t > st.maxPos) st.maxPos = t;
+        if (st.sinceSend >= SEND_INTERVAL) { st.sinceSend = 0; flushWatch(i, false); }
+      }
+    }
+    st.lastT = t;
+  });
+}, 500);
+
+function flushWatch(i, force) {
+  const st = vstate[i];
+  const userId = getUserId();
+  if (!st || !userId || !currentData) return;
+  const w = force ? Math.round(st.unsent) : Math.floor(st.unsent);
+  if (w < 1 && !force && st.sentPos === Math.floor(st.maxPos)) return;
+  st.unsent -= w;
+  if (st.unsent < 0) st.unsent = 0;
+  st.sentPos = Math.floor(st.maxPos);
+  const url = GAS_API_URL +
+    '?api=watch' +
+    '&u=' + encodeURIComponent(userId) +
+    '&c=' + encodeURIComponent(currentData.id) +
+    '&m=' + encodeURIComponent(modId(st.m)) +
+    '&w=' + w +
+    '&d=' + Math.round(st.duration || 0) +
+    '&pos=' + Math.floor(st.maxPos);
+  try { fetch(url, { keepalive: true, mode: 'no-cors', redirect: 'follow' }); } catch (e) {}
+}
+
+function flushAll() {
+  Object.keys(vstate).forEach(function(k) {
+    const st = vstate[k];
+    if (st.unsent >= 1 || st.playing) flushWatch(Number(k), true);
+  });
+}
+window.addEventListener('pagehide', flushAll);
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'hidden') flushAll();
+});
+
+// 最新の視聴状況を取り直して、ロック・視聴済み・テストボタンを更新（プレイヤーは作り直さない）
+async function refreshWatch() {
+  try {
+    const data = await fetchCurriculum(currentData.id, getUserId());
+    if (data.error) return;
+    currentData.watch = data.watch;
+    videoModules.forEach(function(m, i) {
+      const w = watchFor(currentData, m);
+      const st = vstate[i];
+      st.done = st.done || w.done;
+      st.maxPos = Math.max(st.maxPos, w.pos);
+    });
+    applyLocks();
+    const box = document.getElementById('test-action');
+    if (box && currentData.testUrl) box.innerHTML = testActionHtml(currentData.testUrl, watchAllDone(currentData));
+  } catch (e) { console.error(e); }
 }
 
 function renderError(title, msg) {
