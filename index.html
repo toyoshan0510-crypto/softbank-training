@@ -858,7 +858,7 @@ function renderCurriculum(data) {
 
 /* ============== Video player / watch tracking ============== */
 const MAX_RATE = 1.25;
-const SEND_INTERVAL = 15;   // 再生秒数がこれだけ溜まるごとに送信
+const SEND_INTERVAL = 10;   // 再生秒数がこれだけ溜まるごとに送信
 const SEEK_TOLERANCE = 2;   // 最大到達位置からこの秒数を超えて先へ行ったら巻き戻す
 
 let currentData = null;
@@ -1062,9 +1062,16 @@ function flushWatch(i, force) {
   try {
     fetch(url, { keepalive: true, redirect: 'follow' })
       .then(function(r) { return r.json(); })
-      .then(function(res) { if (res && res.ok) applyWatchResult(i, res); })
-      .catch(function() {});
-  } catch (e) {}
+      .then(function(res) {
+        if (res && res.ok) { applyWatchResult(i, res); return; }
+        throw new Error((res && res.error) || 'watch failed');
+      })
+      .catch(function(err) {
+        // 失敗したら次の周期で再送する
+        st.dirty = true;
+        console.warn('視聴記録の送信に失敗:', err);
+      });
+  } catch (e) { st.dirty = true; }
 }
 
 // api=watch の返り値 { ok, moduleId, watched, rate, done, allDone } を画面に反映
@@ -1089,7 +1096,10 @@ function flushAll() {
     if (st.dirty || st.playing) flushWatch(Number(k), true);
   });
 }
+// LINEのブラウザを✕で閉じる・アプリを切り替える等で画面が隠れる前に送る
 window.addEventListener('pagehide', flushAll);
+window.addEventListener('beforeunload', flushAll);
+document.addEventListener('freeze', flushAll);
 document.addEventListener('visibilitychange', function() {
   if (document.visibilityState === 'hidden') flushAll();
 });
