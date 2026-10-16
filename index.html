@@ -887,13 +887,7 @@ function extractVideoId(url) {
 function watchAllDone(data) { return !!(data && data.watch && data.watch.allDone); }
 function watchFor(data, m) {
   const w = data && data.watch && data.watch.modules;
-  let r = null;
-  if (Array.isArray(w)) {
-    r = w.find(function(x) { return String(x.moduleId || x.id || x.m) === String(modId(m)); });
-  } else if (w) {
-    r = w[modId(m)];
-  }
-  r = r || {};
+  const r = (w && w[modId(m)]) || {};
   return { watched: Number(r.watched) || 0, pos: Number(r.pos) || 0, done: !!r.done };
 }
 function testActionHtml(url, allDone) {
@@ -939,7 +933,7 @@ function initVideos() {
     const w = watchFor(currentData, m);
     vstate[i] = {
       m: m, vid: extractVideoId(m.videoUrl), player: null,
-      done: w.done, maxPos: w.pos, unsent: 0, sinceSend: 0,
+      done: w.done, maxPos: w.pos, watched: w.watched, dirty: false, sinceSend: 0,
       lastT: null, duration: 0, playing: false, locked: false, ended: false
     };
   });
@@ -1033,10 +1027,15 @@ setInterval(function() {
       const delta = t - st.lastT;
       // 通常再生の範囲の増分だけ数える（シークによる大きなジャンプは数えない）
       if (delta > 0 && delta < 2) {
-        st.unsent += delta;
-        st.sinceSend += delta;
+        // 0〜最大到達位置は「見た部分」。そこから先に再生した分だけ累計に足す
+        const from = Math.max(st.lastT, st.maxPos);
+        if (t > from) {
+          st.watched += t - from;
+          st.sinceSend += t - from;
+          st.dirty = true;
+        }
         if (t > st.maxPos) st.maxPos = t;
-        if (st.sinceSend >= SEND_INTERVAL) { st.sinceSend = 0; flushWatch(i, false); }
+        if (st.sinceSend >= SEND_INTERVAL && st.dirty) { st.sinceSend = 0; flushWatch(i, false); }
       }
     }
     st.lastT = t;
@@ -1047,26 +1046,47 @@ function flushWatch(i, force) {
   const st = vstate[i];
   const userId = getUserId();
   if (!st || !userId || !currentData) return;
-  const w = force ? Math.round(st.unsent) : Math.floor(st.unsent);
-  if (w < 1 && !force && st.sentPos === Math.floor(st.maxPos)) return;
-  st.unsent -= w;
-  if (st.unsent < 0) st.unsent = 0;
+  if (!force && !st.dirty && st.sentPos === Math.floor(st.maxPos)) return;
+  st.dirty = false;
+  st.sinceSend = 0;
   st.sentPos = Math.floor(st.maxPos);
+  // w は、このモジュールで実際に再生した秒数の「累計」
   const url = GAS_API_URL +
     '?api=watch' +
     '&u=' + encodeURIComponent(userId) +
     '&c=' + encodeURIComponent(currentData.id) +
     '&m=' + encodeURIComponent(modId(st.m)) +
-    '&w=' + w +
+    '&w=' + Math.round(st.watched) +
     '&d=' + Math.round(st.duration || 0) +
     '&pos=' + Math.floor(st.maxPos);
-  try { fetch(url, { keepalive: true, mode: 'no-cors', redirect: 'follow' }); } catch (e) {}
+  try {
+    fetch(url, { keepalive: true, redirect: 'follow' })
+      .then(function(r) { return r.json(); })
+      .then(function(res) { if (res && res.ok) applyWatchResult(i, res); })
+      .catch(function() {});
+  } catch (e) {}
+}
+
+// api=watch の返り値 { ok, moduleId, watched, rate, done, allDone } を画面に反映
+function applyWatchResult(i, res) {
+  const st = vstate[i];
+  if (!st || !currentData) return;
+  const wasAll = watchAllDone(currentData);
+  if (res.done) st.done = true;
+  if (typeof res.watched === 'number') st.watched = Math.max(st.watched, res.watched);
+  if (!currentData.watch) currentData.watch = { modules: {} };
+  currentData.watch.allDone = !!res.allDone;
+  applyLocks();
+  if (!!res.allDone !== wasAll) {
+    const box = document.getElementById('test-action');
+    if (box && currentData.testUrl) box.innerHTML = testActionHtml(currentData.testUrl, !!res.allDone);
+  }
 }
 
 function flushAll() {
   Object.keys(vstate).forEach(function(k) {
     const st = vstate[k];
-    if (st.unsent >= 1 || st.playing) flushWatch(Number(k), true);
+    if (st.dirty || st.playing) flushWatch(Number(k), true);
   });
 }
 window.addEventListener('pagehide', flushAll);
@@ -1085,6 +1105,7 @@ async function refreshWatch() {
       const st = vstate[i];
       st.done = st.done || w.done;
       st.maxPos = Math.max(st.maxPos, w.pos);
+      st.watched = Math.max(st.watched, w.watched);
     });
     applyLocks();
     const box = document.getElementById('test-action');
