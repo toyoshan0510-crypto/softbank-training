@@ -1054,7 +1054,7 @@ function flushWatch(i, force) {
   const url = GAS_API_URL +
     '?api=watch' +
     '&u=' + encodeURIComponent(userId) +
-    '&c=' + encodeURIComponent(currentData.id) +
+    '&cid=' + encodeURIComponent(currentData.id) +
     '&m=' + encodeURIComponent(modId(st.m)) +
     '&w=' + Math.round(st.watched) +
     '&d=' + Math.round(st.duration || 0) +
