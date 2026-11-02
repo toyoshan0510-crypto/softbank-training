@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>知識｜ASXEED 研修</title>
+<style>
+  :root{--navy:#283B8F;--acc:#0F8B7D;--org:#D9661B;--bg:#F6F4EF;--card:#fff;--text:#1D2433;--sub:#6B7584;--line:#E3E1DA}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Hiragino Sans","Noto Sans JP",sans-serif;background:var(--bg);color:var(--text);padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+  header{background:var(--navy);color:#fff;padding:18px 18px 16px}
+  header p{font-size:12px;opacity:.8}
+  header h1{font-size:22px;font-weight:900;margin-top:2px}
+  main{max-width:640px;margin:0 auto;padding:16px}
+  .summary{background:var(--card);border-radius:14px;padding:14px 16px;margin-bottom:14px;font-size:14px;line-height:1.6}
+  .summary b{color:var(--org)}
+  .item{background:var(--card);border-radius:14px;margin-bottom:12px;overflow:hidden;border:2px solid transparent}
+  .item.open{border-color:var(--navy)}
+  .head{display:flex;gap:12px;align-items:center;padding:14px 16px;cursor:pointer}
+  .badge{flex:none;font-size:11px;font-weight:900;border-radius:999px;padding:3px 10px;color:#fff}
+  .badge.new{background:var(--org)}.badge.ok{background:var(--acc)}
+  .ttl{flex:1}.ttl b{display:block;font-size:15px;line-height:1.4}.ttl span{font-size:12px;color:var(--sub)}
+  .body{display:none;padding:0 16px 16px}
+  .item.open .body{display:block}
+  .note{font-size:14px;line-height:1.6;margin-bottom:10px}
+  .video{position:relative;padding-top:56.25%;background:#000;border-radius:10px;overflow:hidden}
+  .video>div,.video iframe{position:absolute;inset:0;width:100%;height:100%}
+  .bar{height:6px;background:var(--line);border-radius:3px;margin-top:10px;overflow:hidden}
+  .bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .3s}
+  .hint{font-size:12px;color:var(--sub);margin-top:6px}
+  .btn{display:block;width:100%;margin-top:12px;padding:14px;border:0;border-radius:12px;font-size:16px;font-weight:900;text-align:center;text-decoration:none;color:#fff;background:var(--navy)}
+  .btn[aria-disabled="true"]{background:#C9CEDB;pointer-events:none}
+  .empty,.err{background:var(--card);border-radius:14px;padding:24px;text-align:center;color:var(--sub);font-size:14px;line-height:1.7}
+  .soon{background:#FFF3D6;border-radius:10px;padding:14px;font-size:13px;line-height:1.6}
+</style>
+</head>
+<body>
+<header><p>ASXEED 研修</p><h1>📚 知識</h1></header>
+<main id="app"><div class="empty">読み込み中…</div></main>
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+// ▼ 研修ページ（index.html）と同じ Apps Script のURLを貼り付けてください
+const API_URL = 'https://script.google.com/macros/s/AKfycbwWi7UG0f2-r3hCjdiKy_zPbnCk6fOrZVMIg0sYvq8YHpupYZEB7YbJrFW0SxOzZAQQ3w/exec';
+const WATCH_RATE = 0.9;   // 何割見たらテストが開くか
+
+const qs = new URLSearchParams(location.search);
+const USER = qs.get('u') || '';
+const OPEN = qs.get('k') || '';
+const app = document.getElementById('app');
+const players = {};
+let ytReady = false;
+window.onYouTubeIframeAPIReady = () => { ytReady = true; };
+
+function ytId(url){
+  const m = String(url||'').match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : '';
+}
+function esc(s){return String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+
+async function load(){
+  if(!USER){ app.innerHTML='<div class="err">LINEの「知識」から開いてください。</div>'; return; }
+  try{
+    const res = await fetch(API_URL + '?api=knowledge&u=' + encodeURIComponent(USER));
+    const data = await res.json();
+    if(data.error){ app.innerHTML='<div class="err">'+esc(data.error)+'</div>'; return; }
+    render(data);
+  }catch(e){ app.innerHTML='<div class="err">読み込めませんでした。時間をおいて、もう一度開いてください。</div>'; }
+}
+
+function render(data){
+  const items = data.items || [];
+  if(!items.length){ app.innerHTML='<div class="empty">まだ公開されている知識はありません。<br>追加されたらLINEでお知らせします。</div>'; return; }
+  const notYet = items.filter(k=>!k.passed).length;
+  app.innerHTML = '<div class="summary">'+esc(data.name)+'さん　'+(notYet?'まだのもの：<b>'+notYet+'件</b>':'すべて合格しています！')+
+    '<br><span style="color:var(--sub);font-size:12px">動画を最後まで見ると、テストが開きます。3問全問正解で合格です。</span></div>' +
+    items.map(k=>`
+    <div class="item" id="k-${esc(k.id)}">
+      <div class="head" onclick="toggle('${esc(k.id)}')">
+        <span class="badge ${k.passed?'ok':'new'}">${k.passed?'合格':'まだ'}</span>
+        <div class="ttl"><b>${esc(k.title)}</b><span>${esc(k.date)}${k.duration?'　'+esc(k.duration):''}</span></div>
+      </div>
+      <div class="body">
+        ${k.note?`<p class="note">${esc(k.note)}</p>`:''}
+        ${ytId(k.videoUrl)?`<div class="video"><div id="p-${esc(k.id)}"></div></div>
+          <div class="bar"><i id="b-${esc(k.id)}"></i></div><p class="hint" id="h-${esc(k.id)}">最後まで見ると、テストが開きます</p>`
+          :`<div class="soon">動画は準備中です。</div>`}
+        ${k.testUrl?`<a class="btn" id="t-${esc(k.id)}" href="${esc(k.testUrl)}" target="_blank" rel="noopener" aria-disabled="${k.passed||!ytId(k.videoUrl)?'false':'true'}">${k.passed?'もう一度テストを受ける':'テストを受ける'}</a>`:''}
+      </div>
+    </div>`).join('');
+  window._items = items;
+  const first = OPEN && items.find(k=>k.id===OPEN) ? OPEN : (items.find(k=>!k.passed)||{}).id;
+  if(first) toggle(first, true);
+}
+
+function toggle(id, scroll){
+  const el = document.getElementById('k-'+id);
+  const open = !el.classList.contains('open');
+  document.querySelectorAll('.item.open').forEach(x=>x.classList.remove('open'));
+  if(open){ el.classList.add('open'); makePlayer(id); if(scroll) el.scrollIntoView({behavior:'smooth',block:'start'}); }
+}
+
+function makePlayer(id){
+  const k = window._items.find(x=>x.id===id);
+  const vid = ytId(k && k.videoUrl);
+  if(!vid || players[id]) return;
+  const start = () => {
+    players[id] = new YT.Player('p-'+id, { videoId: vid, playerVars:{ playsinline:1, rel:0 } });
+    let maxSeen = 0;
+    setInterval(()=>{
+      const p = players[id]; if(!p || !p.getDuration) return;
+      const d = p.getDuration(), t = p.getCurrentTime();
+      if(!d) return;
+      if(t > maxSeen && t - maxSeen < 3) maxSeen = t;   // 飛ばした分は数えない
+      const rate = Math.min(1, maxSeen / d);
+      document.getElementById('b-'+id).style.width = (rate*100)+'%';
+      if(rate >= WATCH_RATE){
+        const btn = document.getElementById('t-'+id);
+        if(btn) btn.setAttribute('aria-disabled','false');
+        document.getElementById('h-'+id).textContent = 'テストが開きました 👇';
+      }
+    }, 1000);
+  };
+  if(ytReady) start(); else { const w = setInterval(()=>{ if(ytReady){ clearInterval(w); start(); } }, 200); }
+}
+
+load();
+</script>
+</body>
+</html>
