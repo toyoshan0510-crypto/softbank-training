@@ -35,10 +35,19 @@ button:disabled{opacity:.45;cursor:default}
 .bar{position:sticky;bottom:0;background:var(--bg);padding:10px 0 calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
 #interim{min-height:24px;color:var(--sub);font-size:14px;text-align:center;margin-bottom:8px}
 .row{display:flex;gap:10px;align-items:center}
-#mic{flex:1;background:var(--green);color:#fff;font-size:19px;padding:18px}
-#mic.rec{background:var(--red);animation:pulse 1.2s infinite}
-@keyframes pulse{50%{opacity:.72}}
-@media (prefers-reduced-motion:reduce){#mic.rec{animation:none}}
+#mic{width:100%;background:#98A2B3;color:#fff;font-size:19px;padding:18px;margin-bottom:10px}
+#mic small{display:block;font-size:12px;font-weight:600;opacity:.9}
+#mic.listen{background:var(--green);animation:pulse 1.6s infinite}
+#mic.think{background:#B7791F}
+#mic.speak{background:var(--navy)}
+#mic.tap{background:var(--red)}
+@keyframes pulse{50%{opacity:.78}}
+@media (prefers-reduced-motion:reduce){#mic.listen{animation:none}}
+.row button{flex:1;font-size:15px;padding:12px 8px}
+.plain{background:#fff;color:var(--navy);border:1.5px solid var(--navy)}
+.gap{display:flex;gap:8px;margin-top:8px}
+.gap button{flex:1;font-size:14px;padding:10px 4px;background:#fff;color:var(--ink);border:1.5px solid var(--line)}
+.gap button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
 #typed{display:none;margin-top:10px}
 #typed .row{align-items:stretch}
 #typed button{background:var(--navy);color:#fff;white-space:nowrap}
@@ -63,8 +72,18 @@ button:disabled{opacity:.45;cursor:default}
     <div class="card">
       <h2>やり方</h2>
       <p>AIのお客様（ご主人・奥様）に、クローズのトークを声で話します。お客様も声で返事をします。</p>
-      <p>①「話す」を押して話す → ②話し終わったら「送る」を押す → ③お客様の返事を聞く。これをくり返します。</p>
+      <p><b>ボタンは押さなくて大丈夫です。</b>スマホを机に置いて、紙に書きながらそのまま話してください。話し終わって少し間があくと、お客様が返事をします。</p>
       <p>終わるときは「終了して採点」を押すと、点数と直すポイントが出ます。</p>
+      <p style="font-size:13px;color:var(--sub)">声が出ないときは、マナーモード（消音）を解除して、音量を上げてください。iPhoneはSafari、AndroidはChromeで開いてください。</p>
+    </div>
+    <div class="card">
+      <label>話し終わってから、お客様が返事をするまでの間</label>
+      <div class="gap" id="gap">
+        <button data-ms="2000">短い（2秒）</button>
+        <button data-ms="3000">ふつう（3秒）</button>
+        <button data-ms="5000">長い（5秒）</button>
+      </div>
+      <p style="font-size:13px;color:var(--sub)">書いている間に返事が来てしまうときは「長い」にしてください。</p>
     </div>
     <div class="card">
       <h2>お客様の設定</h2>
@@ -91,8 +110,10 @@ button:disabled{opacity:.45;cursor:default}
     <div id="log" aria-live="polite"></div>
     <div class="bar">
       <div id="interim"></div>
+      <button id="mic"></button>
       <div class="row">
-        <button id="mic">🎤 話す</button>
+        <button class="plain" id="btnPause">一時停止</button>
+        <button class="plain" id="btnAgainVoice">🔊 もう一度聞く</button>
         <button class="ghost" id="btnEnd">終了して採点</button>
       </div>
       <div style="text-align:center"><button class="link" id="btnType">文字で入力する</button></div>
@@ -130,8 +151,10 @@ const store = {
 };
 let messages = [];      // {role:'user'|'assistant', content}
 let busy = false;
-let rec = null, recOn = false, heard = '', interim = '';
+let state = 'idle';     // idle | listen | think | speak | pause | tap
+let lastLines = [];
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+const synth = window.speechSynthesis || null;
 
 function show(id){ ['vStart','vTalk','vScore'].forEach(v => $(v).classList.toggle('hide', v !== id)); }
 function add(cls, text, who){
@@ -172,98 +195,162 @@ function parseLines(reply){
     return m ? { who: m[1], text: m[2] } : { who: 'お客様', text: line };
   });
 }
-function jaVoice(){
-  const vs = window.speechSynthesis ? speechSynthesis.getVoices() : [];
-  return vs.find(v => v.lang === 'ja-JP') || vs.find(v => (v.lang || '').startsWith('ja')) || null;
+function jaVoices(){
+  const vs = synth ? synth.getVoices() : [];
+  return vs.filter(v => (v.lang || '').replace('_', '-').toLowerCase().startsWith('ja'));
 }
-function speak(lines){
-  if (!window.speechSynthesis) return;
-  speechSynthesis.cancel();
-  const v = jaVoice();
-  lines.forEach(l => {
-    const u = new SpeechSynthesisUtterance(l.text.replace(/[（(][^）)]*[）)]/g, ''));
-    u.lang = 'ja-JP'; if (v) u.voice = v;
-    u.pitch = l.who === 'ご主人' ? 0.6 : l.who === '奥様' ? 1.5 : 1;
-    u.rate = 1.05;
-    speechSynthesis.speak(u);
-  });
-}
-function unlockAudio(){   // iPhoneは最初のタップで1回鳴らしておかないと声が出ない
-  if (!window.speechSynthesis) return;
-  const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u);
+let keep = [];   // 読み上げ中に消されないように持っておく
+function speak(lines, done){
+  let finished = false, timer = null;
+  const fin = () => { if (finished) return; finished = true; clearTimeout(timer); if (done) done(); };
+  if (!synth || !lines.length) return fin();
+  const chars = lines.reduce((n, l) => n + l.text.length, 0);
+  timer = setTimeout(fin, 4000 + chars * 300);   // 終わりの合図が来ない機種のための保険
+  const go = () => {
+    const vs = jaVoices();
+    const male = vs.find(v => /otoya|hattori|ichiro|keita|male|男/i.test(v.name));
+    const base = vs.find(v => v !== male) || vs[0] || null;
+    keep = [];
+    try { synth.resume(); } catch(e){}
+    lines.forEach((l, i) => {
+      const u = new SpeechSynthesisUtterance(l.text.replace(/[（(][^）)]*[）)]/g, ''));
+      u.lang = 'ja-JP'; u.volume = 1; u.rate = 1.05;
+      if (l.who === 'ご主人'){ if (male){ u.voice = male; u.pitch = 0.9; } else { if (base) u.voice = base; u.pitch = 0.6; } }
+      else if (l.who === '奥様'){ if (base) u.voice = base; u.pitch = male ? 1.1 : 1.5; }
+      else { if (base) u.voice = base; u.pitch = 1; }
+      if (i === lines.length - 1){ u.onend = fin; u.onerror = fin; }
+      keep.push(u);
+      synth.speak(u);
+    });
+  };
+  // 止めた直後にすぐ話させると、声が出ない機種がある
+  if (synth.speaking || synth.pending){ synth.cancel(); setTimeout(go, 200); } else go();
 }
 
-// ── マイク ──
-function recStart(){
-  if (!SR){ openTyped(); return; }
-  if (window.speechSynthesis) speechSynthesis.cancel();
-  heard = ''; interim = '';
+// ── マイク（押さなくても聞き続ける）──
+let rec = null, recWant = false, carried = '', sessionText = '', silenceTimer = null, gestureStart = false, startFails = 0;
+let GAP = parseInt(store.get('rp_gap'), 10) || 3000;
+function heardText(){ return (carried + sessionText).trim(); }
+function joinResults(results){   // 同じ言葉が重なって届く機種があるので、重なりはまとめる
+  const segs = [];
+  for (let i = 0; i < results.length; i++){
+    const t = results[i][0].transcript;
+    const last = segs.length ? segs[segs.length - 1] : '';
+    if (last && t.trim().startsWith(last.trim())) segs[segs.length - 1] = t; else segs.push(t);
+  }
+  return segs.join('');
+}
+function armSilence(){
+  clearTimeout(silenceTimer);
+  if (state !== 'listen' || !heardText()) return;
+  silenceTimer = setTimeout(() => { if (state === 'listen' && heardText().length >= 2) commit(); }, GAP);
+}
+function recBegin(){
+  if (!recWant) return;
   rec = new SR(); rec.lang = 'ja-JP'; rec.interimResults = true; rec.continuous = true;
+  const mine = rec;
   rec.onresult = e => {
-    interim = '';
-    for (let i = e.resultIndex; i < e.results.length; i++){
-      if (e.results[i].isFinal) heard += e.results[i][0].transcript; else interim += e.results[i][0].transcript;
-    }
-    $('interim').textContent = (heard + interim) || '聞いています…';
+    if (mine !== rec || state !== 'listen') return;
+    sessionText = joinResults(e.results);
+    $('interim').textContent = heardText();
+    armSilence();
   };
   rec.onerror = e => {
+    if (mine !== rec) return;
     if (e.error === 'not-allowed' || e.error === 'service-not-allowed'){
-      recOn = false; micUi();
-      note('マイクが使えませんでした。ブラウザの設定でマイクを許可するか、「文字で入力する」を使ってください。', 'err');
-      openTyped();
+      recWant = false;
+      if (gestureStart){
+        setState('pause');
+        note('マイクが使えませんでした。ブラウザの設定でマイクを許可するか、「文字で入力する」を使ってください。', 'err');
+        openTyped();
+      } else setState('tap');   // 自動では始められない機種。1回タップしてもらう
     }
   };
-  rec.onend = () => { if (recOn){ try { rec.start(); } catch(e){} } };   // 無音で切れても、送るまでは聞き続ける
-  try { rec.start(); recOn = true; micUi(); $('interim').textContent = '聞いています…'; }
-  catch(e){ openTyped(); }
+  rec.onend = () => {
+    if (mine !== rec) return;
+    carried += sessionText; sessionText = '';
+    if (recWant && state === 'listen') setTimeout(recBegin, 250);   // 無音で切れても聞き続ける
+  };
+  try { rec.start(); startFails = 0; }
+  catch(e){
+    if (++startFails < 4) setTimeout(recBegin, 400);
+    else { recWant = false; setState('tap'); }
+  }
 }
-function recStopAndSend(){
-  recOn = false; micUi();
-  try { rec.stop(); } catch(e){}
-  const text = (heard + interim).trim();
-  $('interim').textContent = '';
-  if (!text){ note('声が聞き取れませんでした。もう一度「話す」を押してください。'); return; }
+function recEnd(){
+  recWant = false; clearTimeout(silenceTimer);
+  const r = rec; rec = null;
+  if (r){ try { r.abort(); } catch(e){ try { r.stop(); } catch(e2){} } }
+}
+function listen(fromTap){
+  if (busy) return;
+  if (!SR){ setState('pause'); openTyped(); return; }
+  recEnd();
+  gestureStart = !!fromTap; startFails = 0;
+  carried = ''; sessionText = ''; $('interim').textContent = '';
+  recWant = true; setState('listen'); recBegin();
+}
+function commit(){
+  const text = heardText();
+  recEnd(); $('interim').textContent = '';
+  if (!text){ listen(); return; }
   send(text);
 }
-function micUi(){
-  $('mic').classList.toggle('rec', recOn);
-  $('mic').textContent = recOn ? '■ 送る' : '🎤 話す';
+function setState(s){
+  state = s;
+  const m = $('mic'); m.className = s;
+  const set = (a, b) => { m.textContent = a; const sm = document.createElement('small'); sm.textContent = b; m.appendChild(sm); };
+  if (s === 'listen') set('🎤 聞いています', '話し終わると自動で送ります（押すとすぐ送る）');
+  else if (s === 'think') set('お客様が考えています…', '');
+  else if (s === 'speak') set('🔊 お客様が話しています', '');
+  else if (s === 'tap') set('ここを押して話し始める', '');
+  else set('一時停止中', '押すと再開します');
+  m.disabled = (s === 'think' || s === 'speak');
+  $('btnPause').textContent = s === 'pause' ? '再開' : '一時停止';
 }
 function openTyped(){ $('typed').style.display = 'block'; $('txt').focus(); }
+function sayThenListen(lines){
+  setState('speak');
+  speak(lines, () => { if (state === 'speak') listen(); });
+}
 
 // ── 1往復 ──
 async function send(text){
   if (busy) return;
-  busy = true; setBusy();
+  recEnd();
+  busy = true; setBusy(); setState('think');
   add('me', text);
   messages.push({ role: 'user', content: text });
   const wait = note('お客様が考えています…');
+  let lines = null;
   try {
     const { reply } = await api('turn');
     wait.remove();
     messages.push({ role: 'assistant', content: reply });
-    const lines = parseLines(reply);
+    lines = parseLines(reply);
     lines.forEach(l => add('cu ' + (l.who === 'ご主人' ? 'husband' : l.who === '奥様' ? 'wife' : ''), l.text, l.who));
-    speak(lines);
+    lastLines = lines;
   } catch(e){
     wait.remove();
     messages.pop();   // 送れなかった発言は取り消して、もう一度言えるようにする
     note(e.message + '　もう一度話してください。', 'err');
   }
   busy = false; setBusy();
+  if (state !== 'think') return;          // 待っている間に終了・一時停止された
+  if (lines) sayThenListen(lines); else listen();
 }
-function setBusy(){ $('mic').disabled = busy; $('btnSend').disabled = busy; $('btnEnd').disabled = busy; }
+function setBusy(){ $('btnSend').disabled = busy; $('btnEnd').disabled = busy; }
 
 async function finish(){
   if (busy) return;
-  if (recOn){ recOn = false; micUi(); try { rec.stop(); } catch(e){} }
-  if (window.speechSynthesis) speechSynthesis.cancel();
+  recEnd(); if (synth) synth.cancel();
+  setState('pause');
   if (!messages.length){ note('まだ何も話していません。'); return; }
   busy = true; setBusy();
   const wait = note('採点しています…（30秒ほどかかります）');
   try {
     const { result } = await api('score');
-    renderScore(result); show('vScore'); window.scrollTo(0, 0);
+    renderScore(result); show('vScore'); window.scrollTo(0, 0); releaseWake();
   } catch(e){
     note(e.message + '　もう一度「終了して採点」を押してください。', 'err');
   }
@@ -284,8 +371,19 @@ function renderScore(r){
   $('scMoved').textContent = r.moved; $('scCooled').textContent = r.cooled; $('scFix').textContent = r.fix;
 }
 
+// ── 画面が消えないようにする ──
+let wake = null;
+async function keepAwake(){ try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch(e){} }
+function releaseWake(){ try { if (wake) wake.release(); } catch(e){} wake = null; }
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && !$('vTalk').classList.contains('hide')) keepAwake();
+});
+
 // ── ボタン ──
 $('name').value = store.get('rp_name');
+function gapUi(){ document.querySelectorAll('#gap button').forEach(b => b.classList.toggle('on', +b.dataset.ms === GAP)); }
+document.querySelectorAll('#gap button').forEach(b => b.onclick = () => { GAP = +b.dataset.ms; store.set('rp_gap', String(GAP)); gapUi(); });
+gapUi();
 $('btnStart').onclick = () => {
   const name = $('name').value.trim();
   $('startErr').textContent = '';
@@ -293,18 +391,31 @@ $('btnStart').onclick = () => {
   if (!name) return fail('名前を入れてください。');
   if (!MOCK && !CODE) return fail('LINEのメニューから開き直してください。（合言葉がありません）');
   store.set('rp_name', name);
-  unlockAudio();
-  messages = []; $('log').textContent = '';
-  show('vTalk');
-  note('ご夫婦が席で待っています。「話す」を押して、建て付けからどうぞ。');
-  if (!SR){ note('このブラウザは声の入力に対応していません。文字で入力してください。（iPhoneはSafari、AndroidはChromeで開くと声で話せます）'); openTyped(); }
+  messages = []; lastLines = []; $('log').textContent = '';
+  show('vTalk'); keepAwake();
+  note('ご夫婦が席で待っています。案内の声が終わったら、建て付けからどうぞ。');
+  if (!SR) note('このブラウザは声の入力に対応していません。文字で入力してください。（iPhoneはSafari、AndroidはChromeで開くと声で話せます）');
+  // 最初のタップの中で声を出す（iPhoneはこうしないと、あとで声が出ない）。音の確認もかねる
+  sayThenListen([{ who: '案内', text: 'ご夫婦が席で待っています。建て付けからどうぞ。' }]);
 };
-$('mic').onclick = () => { recOn ? recStopAndSend() : recStart(); };
+$('mic').onclick = () => {
+  if (state === 'listen'){ if (heardText()) commit(); }
+  else if (state === 'pause' || state === 'tap' || state === 'idle') listen(true);
+};
+$('btnPause').onclick = () => {
+  if (busy) return;
+  if (state === 'pause') listen(true);
+  else { recEnd(); if (synth) synth.cancel(); $('interim').textContent = ''; setState('pause'); }
+};
+$('btnAgainVoice').onclick = () => {
+  if (busy || !lastLines.length) return;
+  recEnd(); sayThenListen(lastLines);
+};
 $('btnType').onclick = openTyped;
-$('btnSend').onclick = () => { const t = $('txt').value.trim(); if (t){ $('txt').value = ''; send(t); } };
+$('btnSend').onclick = () => { const t = $('txt').value.trim(); if (t){ $('txt').value = ''; if (synth) synth.cancel(); send(t); } };
 $('btnEnd').onclick = finish;
 $('btnAgain').onclick = () => { show('vStart'); window.scrollTo(0, 0); };
-if (window.speechSynthesis) speechSynthesis.onvoiceschanged = () => {};
+if (synth){ synth.getVoices(); synth.onvoiceschanged = () => {}; }
 </script>
 </body>
 </html>
