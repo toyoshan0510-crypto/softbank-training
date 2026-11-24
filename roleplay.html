@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
+<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>AIロープレ</title>
 <style>
@@ -65,7 +66,7 @@ button:disabled{opacity:.45;cursor:default}
 </head>
 <body>
 <div class="app">
-  <header><span>AIロープレ</span><small>クローズ｜ドコモのご夫婦</small></header>
+  <header><span>AIロープレ</span><small>クローズ｜ドコモのご夫婦　v3</small></header>
 
   <!-- はじめの画面 -->
   <section class="view" id="vStart">
@@ -116,7 +117,7 @@ button:disabled{opacity:.45;cursor:default}
         <button class="plain" id="btnAgainVoice">🔊 もう一度</button>
         <button class="ghost" id="btnEnd">終了して採点</button>
       </div>
-      <div style="text-align:center"><button class="link" id="btnType">文字で入力する</button></div>
+      <div style="text-align:center"><button class="link" id="btnType">文字で入力する</button> <span id="diag" style="font-size:11px;color:var(--sub)"></span></div>
       <div id="typed">
         <div class="row">
           <textarea id="txt" rows="2" placeholder="ここに入力"></textarea>
@@ -200,32 +201,73 @@ function jaVoices(){
   return vs.filter(v => (v.lang || '').replace('_', '-').toLowerCase().startsWith('ja'));
 }
 let keep = [];   // 読み上げ中に消されないように持っておく
+// 声の出し方は2つ。A＝音声ファイルを再生（iPhoneで確実）、B＝スマホ内蔵の読み上げ。Aがだめなら自動でBに切り替える
+const player = new Audio(); player.preload = 'auto'; player.setAttribute('playsinline', '');
+let voiceMode = 'A', speakRun = 0;
+function diag(t){ const d = $('diag'); if (d) d.textContent = t; }
+function ttsUrl(text){ return 'https://translate.google.com/translate_tts?ie=UTF-8&tl=ja&client=tw-ob&q=' + encodeURIComponent(text); }
+function chunks(text){   // 長い文は区切って読む
+  const out = []; let cur = '';
+  text.split(/([^。！？!?、]*[。！？!?、]?)/).filter(Boolean).forEach(p => { if ((cur + p).length > 90 && cur){ out.push(cur); cur = p; } else cur += p; });
+  if (cur.trim()) out.push(cur);
+  return out;
+}
+function stopVoice(){ speakRun++; try { player.pause(); } catch(e){} if (synth) synth.cancel(); }
 function speak(lines, done){
-  let finished = false, timer = null;
-  const fin = () => { if (finished) return; finished = true; clearTimeout(timer); if (done) done(); };
-  if (!synth || !lines.length) return fin();
-  const chars = lines.reduce((n, l) => n + l.text.length, 0);
-  timer = setTimeout(fin, 4000 + chars * 300);   // 終わりの合図が来ない機種のための保険
+  const run = ++speakRun;
+  let finished = false;
+  const fin = () => { if (finished) return; finished = true; if (run === speakRun && done) done(); };
+  const items = [];
+  lines.forEach(l => chunks(l.text.replace(/[（(][^）)]*[）)]/g, '')).forEach(t => items.push({ who: l.who, text: t })));
+  if (!items.length) return fin();
+  if (voiceMode === 'B') return speakB(items, fin);
+  let i = 0;
+  const next = () => {
+    if (run !== speakRun) return;
+    if (i >= items.length) return fin();
+    const it = items[i++]; let moved = false, guard = null;
+    const ok = () => { if (moved) return; moved = true; clearTimeout(guard); player.onended = player.onerror = null; next(); };
+    const ng = why => {
+      if (moved) return; moved = true; clearTimeout(guard); player.onended = player.onerror = null;
+      if (run !== speakRun) return;
+      voiceMode = 'B'; diag('声：B（' + why + '）');
+      speakB(items.slice(i - 1), fin);
+    };
+    player.onended = ok; player.onerror = () => ng('読込');
+    player.src = ttsUrl(it.text);
+    try { player.preservesPitch = false; player.webkitPreservesPitch = false; } catch(e){}
+    player.playbackRate = it.who === 'ご主人' ? 0.86 : it.who === '奥様' ? 1.1 : 1;
+    guard = setTimeout(() => { if (player.currentTime > 0) ok(); else ng('時間切れ'); }, 5000 + it.text.length * 350);
+    const pr = player.play();
+    if (pr && pr.then) pr.then(() => diag('声：A'), e => ng(e && e.name || '再生'));
+  };
+  next();
+}
+function speakB(items, fin){
+  if (!synth) { diag('声：×'); return fin(); }
+  const chars = items.reduce((n, l) => n + l.text.length, 0);
+  const timer = setTimeout(fin, 4000 + chars * 300);   // 終わりの合図が来ない機種のための保険
+  const end = () => { clearTimeout(timer); fin(); };
   const go = () => {
     const vs = jaVoices();
     const male = vs.find(v => /otoya|hattori|ichiro|keita|male|男/i.test(v.name));
     const base = vs.find(v => v !== male) || vs[0] || null;
     keep = [];
     try { synth.resume(); } catch(e){}
-    lines.forEach((l, i) => {
-      const u = new SpeechSynthesisUtterance(l.text.replace(/[（(][^）)]*[）)]/g, ''));
+    items.forEach((l, i) => {
+      const u = new SpeechSynthesisUtterance(l.text);
       u.lang = 'ja-JP'; u.volume = 1; u.rate = 1.05;
       if (l.who === 'ご主人'){ if (male){ u.voice = male; u.pitch = 0.9; } else { if (base) u.voice = base; u.pitch = 0.6; } }
       else if (l.who === '奥様'){ if (base) u.voice = base; u.pitch = male ? 1.1 : 1.5; }
       else { if (base) u.voice = base; u.pitch = 1; }
-      if (i === lines.length - 1){ u.onend = fin; u.onerror = fin; }
+      if (i === items.length - 1){ u.onend = end; u.onerror = end; }
       keep.push(u);
       synth.speak(u);
     });
   };
-  // 止めた直後にすぐ話させると、声が出ない機種がある
   if (synth.speaking || synth.pending){ synth.cancel(); setTimeout(go, 200); } else go();
 }
+function unlockB(){ if (!synth) return; try { const u = new SpeechSynthesisUtterance('あ'); u.volume = 0; u.lang = 'ja-JP'; synth.speak(u); } catch(e){} }
 
 // ── マイク（押さなくても聞き続ける）──
 let rec = null, recWant = false, carried = '', sessionText = '', silenceTimer = null, gestureStart = false, startFails = 0;
@@ -311,7 +353,7 @@ function setState(s){
 function openTyped(){ $('typed').style.display = 'block'; $('txt').focus(); }
 function sayThenListen(lines){
   setState('speak');
-  speak(lines, () => { if (state === 'speak') listen(); });
+  speak(lines, () => { if (state === 'speak') setTimeout(() => { if (state === 'speak') listen(); }, 250); });
 }
 
 // ── 1往復 ──
@@ -343,7 +385,7 @@ function setBusy(){ $('btnSend').disabled = busy; $('btnEnd').disabled = busy; }
 
 async function finish(){
   if (busy) return;
-  recEnd(); if (synth) synth.cancel();
+  recEnd(); stopVoice();
   setState('pause');
   if (!messages.length){ note('まだ何も話していません。'); return; }
   busy = true; setBusy();
@@ -396,6 +438,7 @@ $('btnStart').onclick = () => {
   note('ご夫婦が席で待っています。案内の声が終わったら、建て付けからどうぞ。');
   if (!SR) note('このブラウザは声の入力に対応していません。文字で入力してください。（iPhoneはSafari、AndroidはChromeで開くと声で話せます）');
   // 最初のタップの中で声を出す（iPhoneはこうしないと、あとで声が出ない）。音の確認もかねる
+  unlockB();
   sayThenListen([{ who: '案内', text: 'ご夫婦が席で待っています。建て付けからどうぞ。' }]);
 };
 $('mic').onclick = () => {
@@ -405,14 +448,14 @@ $('mic').onclick = () => {
 $('btnPause').onclick = () => {
   if (busy) return;
   if (state === 'pause') listen(true);
-  else { recEnd(); if (synth) synth.cancel(); $('interim').textContent = ''; setState('pause'); }
+  else { recEnd(); stopVoice(); $('interim').textContent = ''; setState('pause'); }
 };
 $('btnAgainVoice').onclick = () => {
   if (busy || !lastLines.length) return;
   recEnd(); sayThenListen(lastLines);
 };
 $('btnType').onclick = openTyped;
-$('btnSend').onclick = () => { const t = $('txt').value.trim(); if (t){ $('txt').value = ''; if (synth) synth.cancel(); send(t); } };
+$('btnSend').onclick = () => { const t = $('txt').value.trim(); if (t){ $('txt').value = ''; stopVoice(); send(t); } };
 $('btnEnd').onclick = finish;
 $('btnAgain').onclick = () => { show('vStart'); window.scrollTo(0, 0); };
 if (synth){ synth.getVoices(); synth.onvoiceschanged = () => {}; }
