@@ -2,7 +2,6 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="referrer" content="no-referrer">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>AIロープレ</title>
 <style>
@@ -18,41 +17,40 @@ header small{font-weight:500;font-size:12px;opacity:.85}
 .card h2{margin:0 0 6px;font-size:17px}
 .card p{margin:6px 0;color:#344054;font-size:15px}
 label{font-weight:700;font-size:14px;display:block;margin-bottom:6px}
-input[type=text],textarea{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:12px;font-size:16px;font-family:inherit;background:#fff;color:var(--ink)}
+input[type=text]{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:12px;font-size:16px;font-family:inherit;background:#fff;color:var(--ink)}
 button{font-family:inherit;font-size:17px;font-weight:800;border:0;border-radius:12px;padding:14px 18px;cursor:pointer}
 button:disabled{opacity:.45;cursor:default}
 .primary{background:var(--green);color:#fff;width:100%}
 .ghost{background:#fff;color:var(--red);border:1.5px solid var(--red)}
+.plain{background:#fff;color:var(--navy);border:1.5px solid var(--navy)}
 .words{background:#FFF4D6;border-radius:10px;padding:10px 12px;font-size:14px;font-weight:600}
 .words div{margin:2px 0}
-#log{flex:1;overflow-y:auto;padding-bottom:8px;min-height:120px}
-.msg{max-width:86%;padding:10px 13px;border-radius:14px;margin:8px 0;font-size:16px;white-space:pre-wrap;word-break:break-word}
-.me{background:var(--navy);color:#fff;margin-left:auto;border-bottom-right-radius:4px}
-.cu{background:#fff;border:1px solid var(--line);border-bottom-left-radius:4px}
-.cu b{display:block;font-size:12px;color:var(--sub)}
-.cu.wife b{color:#B7417A}.cu.husband b{color:#1F6FB5}
-.sys{text-align:center;color:var(--sub);font-size:13px;margin:10px 0}
 .err{background:#FDECEC;color:var(--red);border-radius:10px;padding:10px 12px;font-size:14px;font-weight:600;margin:8px 0}
-.bar{position:sticky;bottom:0;background:var(--bg);padding:10px 0 calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--line)}
-#interim{min-height:24px;color:var(--sub);font-size:14px;text-align:center;margin-bottom:8px}
-.row{display:flex;gap:10px;align-items:center}
-#mic{width:100%;background:#98A2B3;color:#fff;font-size:19px;padding:18px;margin-bottom:10px}
-#mic small{display:block;font-size:12px;font-weight:600;opacity:.9}
-#mic.listen{background:var(--green);animation:pulse 1.6s infinite}
-#mic.think{background:#B7791F}
-#mic.speak{background:var(--navy)}
-#mic.tap{background:var(--red)}
-@keyframes pulse{50%{opacity:.78}}
-@media (prefers-reduced-motion:reduce){#mic.listen{animation:none}}
-.row button{flex:1;font-size:15px;padding:12px 8px}
-.plain{background:#fff;color:var(--navy);border:1.5px solid var(--navy)}
-.gap{display:flex;gap:8px;margin-top:8px}
-.gap button{flex:1;font-size:14px;padding:10px 4px;background:#fff;color:var(--ink);border:1.5px solid var(--line)}
-.gap button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
-#typed{display:none;margin-top:10px}
-#typed .row{align-items:stretch}
-#typed button{background:var(--navy);color:#fff;white-space:nowrap}
-.link{background:none;color:var(--navy);font-size:14px;font-weight:700;text-decoration:underline;padding:6px}
+/* ご夫婦 */
+.stage{background:linear-gradient(#E9EEF8,#F8F4EC);border:1px solid var(--line);border-radius:16px;padding:14px 8px 10px;display:flex;justify-content:center;gap:10px}
+.person{flex:1;max-width:210px;text-align:center;opacity:.78;transition:opacity .2s,transform .2s}
+.person svg{width:100%;max-width:170px;height:auto;display:block;margin:0 auto}
+.person .nm{display:inline-block;margin-top:4px;font-weight:800;font-size:14px;padding:2px 12px;border-radius:99px;background:#fff;border:1.5px solid var(--line)}
+.person.talk{opacity:1;transform:translateY(-4px) scale(1.04)}
+.person.talk .nm{background:var(--navy);color:#fff;border-color:var(--navy)}
+.mouth{transform-box:fill-box;transform-origin:center}
+.person.talk .mouth{animation:talk .32s infinite alternate}
+@keyframes talk{from{transform:scaleY(1)}to{transform:scaleY(4.2) scaleX(.8)}}
+.eyes{transform-box:fill-box;transform-origin:center;animation:blink 5s infinite}
+#pW .eyes{animation-delay:1.7s}
+@keyframes blink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+@media (prefers-reduced-motion:reduce){.person.talk .mouth,.eyes{animation:none}.person.talk .mouth{transform:scaleY(3)}}
+#said{min-height:76px;margin:12px 0 0;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:17px;font-weight:600}
+#said b{display:block;font-size:12px;color:var(--sub)}
+#said.husband b{color:#1F6FB5}#said.wife b{color:#B7417A}
+#status{margin:12px 0 4px;text-align:center;font-weight:800;font-size:17px;color:var(--sub)}
+#status.listen{color:var(--green)}#status.speak{color:var(--navy)}#status.off{color:var(--red)}
+#mine{min-height:22px;text-align:center;color:var(--sub);font-size:13px;margin-bottom:8px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.row{display:flex;gap:10px;margin-top:auto;padding-top:10px}
+.row button{flex:1;font-size:16px}
+.link{background:none;color:var(--navy);font-size:14px;font-weight:700;text-decoration:underline;padding:8px}
+#log{display:none;margin-top:6px;font-size:14px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;max-height:220px;overflow-y:auto}
+#log div{margin:4px 0}#log .me{color:var(--navy);font-weight:600}
 .score{font-size:44px;font-weight:900;color:var(--navy);text-align:center;line-height:1.2}
 .score small{font-size:16px;color:var(--sub);font-weight:700}
 .st{display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:15px}
@@ -66,25 +64,14 @@ button:disabled{opacity:.45;cursor:default}
 </head>
 <body>
 <div class="app">
-  <header><span>AIロープレ</span><small>クローズ｜ドコモのご夫婦　v3</small></header>
+  <header><span>AIロープレ</span><small>クローズ｜ドコモのご夫婦　v4</small></header>
 
-  <!-- はじめの画面 -->
   <section class="view" id="vStart">
     <div class="card">
       <h2>やり方</h2>
-      <p>AIのお客様（ご主人・奥様）に、クローズのトークを声で話します。お客様も声で返事をします。</p>
-      <p><b>ボタンは押さなくて大丈夫です。</b>スマホを机に置いて、紙に書きながらそのまま話してください。話し終わって少し間があくと、お客様が返事をします。</p>
-      <p>終わるときは「終了して採点」を押すと、点数と直すポイントが出ます。</p>
-      <p style="font-size:13px;color:var(--sub)">声が出ないときは、マナーモード（消音）を解除して、音量を上げてください。iPhoneはSafari、AndroidはChromeで開いてください。</p>
-    </div>
-    <div class="card">
-      <label>話し終わってから、お客様が返事をするまでの間</label>
-      <div class="gap" id="gap">
-        <button data-ms="2000">短い（2秒）</button>
-        <button data-ms="3000">ふつう（3秒）</button>
-        <button data-ms="5000">長い（5秒）</button>
-      </div>
-      <p style="font-size:13px;color:var(--sub)">書いている間に返事が来てしまうときは「長い」にしてください。</p>
+      <p>AIのご夫婦と、普段の接客と同じように声で会話します。<b>ボタンは押しません。</b>スマホを机に置いて、紙に書きながらそのまま話してください。</p>
+      <p>お客様が話している途中で話しかけても大丈夫です。終わるときは「終了して採点」を押します。</p>
+      <p style="font-size:13px;color:var(--sub)">iPhoneはSafari、AndroidはChromeで開いてください。最初にマイクの許可を聞かれたら「許可」を押してください。</p>
     </div>
     <div class="card">
       <h2>お客様の設定</h2>
@@ -106,28 +93,46 @@ button:disabled{opacity:.45;cursor:default}
     <button class="primary" id="btnStart">ロープレを始める</button>
   </section>
 
-  <!-- ロープレ中 -->
   <section class="view hide" id="vTalk">
-    <div id="log" aria-live="polite"></div>
-    <div class="bar">
-      <div id="interim"></div>
-      <button id="mic"></button>
-      <div class="row">
-        <button class="plain" id="btnPause">一時停止</button>
-        <button class="plain" id="btnAgainVoice">🔊 もう一度</button>
-        <button class="ghost" id="btnEnd">終了して採点</button>
-      </div>
-      <div style="text-align:center"><button class="link" id="btnType">文字で入力する</button> <span id="diag" style="font-size:11px;color:var(--sub)"></span></div>
-      <div id="typed">
-        <div class="row">
-          <textarea id="txt" rows="2" placeholder="ここに入力"></textarea>
-          <button id="btnSend">送る</button>
-        </div>
-      </div>
+    <div class="stage">
+      <div class="person" id="pH"><svg viewBox="0 0 120 130" aria-hidden="true">
+  <path d="M14 130c2-26 20-36 46-36s44 10 46 36z" fill="#4A5D7A"/>
+  <path d="M48 92h24v14c-7 6-17 6-24 0z" fill="#E9B990"/>
+  <ellipse cx="60" cy="58" rx="33" ry="38" fill="#F2C9A0"/>
+  <path d="M27 52c-3-30 16-42 34-42s36 12 32 42c-4-14-10-20-18-22-12 4-34 4-42 2-4 6-5 12-6 20z" fill="#8A8F98"/>
+  <ellipse cx="26" cy="62" rx="5" ry="8" fill="#F2C9A0"/><ellipse cx="94" cy="62" rx="5" ry="8" fill="#F2C9A0"/>
+  <path class="brow" d="M36 47l15 3M84 47l-15 3" stroke="#5B6068" stroke-width="3.5" stroke-linecap="round"/>
+  <g class="eyes"><ellipse cx="45" cy="59" rx="3.2" ry="3.8" fill="#2B2F36"/><ellipse cx="75" cy="59" rx="3.2" ry="3.8" fill="#2B2F36"/></g>
+  <g fill="none" stroke="#2B2F36" stroke-width="2.2"><rect x="33" y="50" width="23" height="17" rx="5"/><rect x="64" y="50" width="23" height="17" rx="5"/><path d="M56 57h8"/></g>
+  <path d="M58 66c-2 5-2 8 3 9" fill="none" stroke="#D29E73" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M40 76c3 3 5 4 8 4M80 76c-3 3-5 4-8 4" fill="none" stroke="#DDAA80" stroke-width="1.6" stroke-linecap="round"/>
+  <ellipse class="mouth" cx="60" cy="84" rx="8" ry="1.6" fill="#8C3B33"/>
+</svg><span class="nm">ご主人</span></div>
+      <div class="person" id="pW"><svg viewBox="0 0 120 130" aria-hidden="true">
+  <path d="M16 130c2-24 20-34 44-34s42 10 44 34z" fill="#B7708A"/>
+  <path d="M22 60c-4-36 18-52 38-52s42 16 38 52c2 18-2 30-8 36H30c-6-6-10-18-8-36z" fill="#5A3E33"/>
+  <path d="M49 92h22v12c-6 6-16 6-22 0z" fill="#EDC1A0"/>
+  <ellipse cx="60" cy="60" rx="30" ry="35" fill="#F7D3B5"/>
+  <path d="M30 56c0-26 14-36 30-36s30 10 30 36c-6-10-12-18-20-22-10 8-28 12-40 22z" fill="#5A3E33"/>
+  <path class="brow" d="M38 49c5-3 9-3 13-1M82 49c-5-3-9-3-13-1" fill="none" stroke="#4A3229" stroke-width="2.6" stroke-linecap="round"/>
+  <g class="eyes"><ellipse cx="46" cy="60" rx="3.2" ry="4" fill="#2B2F36"/><ellipse cx="74" cy="60" rx="3.2" ry="4" fill="#2B2F36"/></g>
+  <ellipse cx="40" cy="72" rx="6" ry="3.5" fill="#F2A7A0" opacity=".55"/><ellipse cx="80" cy="72" rx="6" ry="3.5" fill="#F2A7A0" opacity=".55"/>
+  <path d="M59 66c-1 4-1 6 2 7" fill="none" stroke="#DBA784" stroke-width="2" stroke-linecap="round"/>
+  <ellipse class="mouth" cx="60" cy="83" rx="6.5" ry="1.5" fill="#B5473F"/>
+</svg><span class="nm">奥様</span></div>
+    </div>
+    <div id="said" aria-live="polite"></div>
+    <div id="status">つないでいます…</div>
+    <div id="mine"></div>
+    <div id="talkErr"></div>
+    <div style="text-align:center"><button class="link" id="btnLog">会話の記録を見る</button></div>
+    <div id="log"></div>
+    <div class="row">
+      <button class="plain" id="btnPause">一時停止</button>
+      <button class="ghost" id="btnEnd">終了して採点</button>
     </div>
   </section>
 
-  <!-- 結果 -->
   <section class="view hide" id="vScore">
     <div class="card"><div class="score" id="scNum"></div></div>
     <div class="card"><h2>6つの段</h2><div id="scStages"></div></div>
@@ -138,10 +143,11 @@ button:disabled{opacity:.45;cursor:default}
   </section>
 </div>
 
+<script src="roleplay-sdk.js"></script>
 <script>
-// ───── 設定（設置するときにここを書きかえる）─────
+// ───── 設定 ─────
 const API_URL = 'https://script.google.com/macros/s/AKfycbzC-AzOu-p9S2zmPBPXuebO7YZpPR7SHV7_kNep7ItbFPcOukT8-vb24oOv2d1kaj3J/exec';
-// ────────────────────────────────────────────
+// ────────────────
 const qs = new URLSearchParams(location.search);
 const CODE = qs.get('k') || '';
 const MOCK = qs.get('mock') === '1';
@@ -150,32 +156,20 @@ const store = {
   get(k){ try { return localStorage.getItem(k) || ''; } catch(e){ return ''; } },
   set(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
 };
-let messages = [];      // {role:'user'|'assistant', content}
-let busy = false;
-let state = 'idle';     // idle | listen | think | speak | pause | tap
-let lastLines = [];
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-const synth = window.speechSynthesis || null;
+let messages = [];      // {role:'user'|'assistant', content}  採点に送る記録
+let conv = null, ending = false, paused = false, busy = false, mode = 'listening';
+let talkTimers = [];
 
 function show(id){ ['vStart','vTalk','vScore'].forEach(v => $(v).classList.toggle('hide', v !== id)); }
-function add(cls, text, who){
-  const d = document.createElement('div');
-  d.className = 'msg ' + cls;
-  if (who){ const b = document.createElement('b'); b.textContent = who; d.appendChild(b); }
-  d.appendChild(document.createTextNode(text));
-  $('log').appendChild(d); $('log').scrollTop = $('log').scrollHeight;
-}
-function note(text, cls){
-  const d = document.createElement('div'); d.className = cls || 'sys'; d.textContent = text;
-  $('log').appendChild(d); $('log').scrollTop = $('log').scrollHeight; return d;
-}
+function errBox(where, text){ const d = document.createElement('div'); d.className = 'err'; d.textContent = text; $(where).appendChild(d); }
+function setStatus(text, cls){ const s = $('status'); s.textContent = text; s.className = cls || ''; }
+function logLine(text, me){ const d = document.createElement('div'); if (me) d.className = 'me'; d.textContent = text; $('log').appendChild(d); $('log').scrollTop = $('log').scrollHeight; }
 
-// ── サーバーとのやり取り ──
 async function api(action){
-  if (MOCK) return mock(action);
+  if (MOCK) return mockApi(action);
   const res = await fetch(API_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },   // GASはこの形だと事前確認なしで受け取れる
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify({ action, k: CODE, name: $('name').value.trim(), messages })
   });
   if (!res.ok) throw new Error('通信に失敗しました（' + res.status + '）');
@@ -183,220 +177,102 @@ async function api(action){
   if (data.error) throw new Error(data.error);
   return data;
 }
-function mock(action){
-  return new Promise(r => setTimeout(() => r(action === 'turn'
-    ? { reply: 'ご主人：ふーん。で、結局いくらになるの？\n奥様：うーん…。' }
-    : { result: { stages: ['建て付け','結論','理由','具体例・数字・根拠','結論・まとめ','ひと押し'].map((n,i)=>({name:n,mark:['◯','△','✕'][i%3],reason:'テスト表示です'})), moved:'テスト', cooled:'なし', fix:'テストの文章です', score:62, result:'保留' } }), 400));
-}
 
-// ── 読み上げ（ご主人は低い声、奥様は高い声）──
-function parseLines(reply){
-  return reply.split('\n').map(s => s.trim()).filter(Boolean).map(line => {
-    const m = line.match(/^(ご主人|奥様)\s*[：:]\s*(.*)$/);
-    return m ? { who: m[1], text: m[2] } : { who: 'お客様', text: line };
-  });
-}
-function jaVoices(){
-  const vs = synth ? synth.getVoices() : [];
-  return vs.filter(v => (v.lang || '').replace('_', '-').toLowerCase().startsWith('ja'));
-}
-let keep = [];   // 読み上げ中に消されないように持っておく
-// 声の出し方は2つ。A＝音声ファイルを再生（iPhoneで確実）、B＝スマホ内蔵の読み上げ。Aがだめなら自動でBに切り替える
-const player = new Audio(); player.preload = 'auto'; player.setAttribute('playsinline', '');
-let voiceMode = 'A', speakRun = 0;
-function diag(t){ const d = $('diag'); if (d) d.textContent = t; }
-function ttsUrl(text){ return 'https://translate.google.com/translate_tts?ie=UTF-8&tl=ja&client=tw-ob&q=' + encodeURIComponent(text); }
-function chunks(text){   // 長い文は区切って読む
-  const out = []; let cur = '';
-  text.split(/([^。！？!?、]*[。！？!?、]?)/).filter(Boolean).forEach(p => { if ((cur + p).length > 90 && cur){ out.push(cur); cur = p; } else cur += p; });
-  if (cur.trim()) out.push(cur);
+// ── お客様のセリフを「だれが言ったか」に分ける ──
+function parseAgent(text){
+  const out = []; const re = /<(Husband|Wife)>([\s\S]*?)<\/\1>/g; let m, last = 0;
+  const push = (who, t) => { t = t.replace(/<[^>]*>/g, '').replace(/\[[^\]]*\]/g, '').replace(/^(ご主人|奥様)\s*[：:]\s*/, '').trim(); if (t) out.push({ who, text: t }); };
+  while ((m = re.exec(text))){
+    if (m.index > last) push('奥様', text.slice(last, m.index));
+    push(m[1] === 'Husband' ? 'ご主人' : '奥様', m[2]); last = re.lastIndex;
+  }
+  if (last < text.length) push(out.length ? '奥様' : (/^\s*ご主人/.test(text) ? 'ご主人' : '奥様'), text.slice(last));
   return out;
 }
-function stopVoice(){ speakRun++; try { player.pause(); } catch(e){} if (synth) synth.cancel(); }
-function speak(lines, done){
-  const run = ++speakRun;
-  let finished = false;
-  const fin = () => { if (finished) return; finished = true; if (run === speakRun && done) done(); };
-  const items = [];
-  lines.forEach(l => chunks(l.text.replace(/[（(][^）)]*[）)]/g, '')).forEach(t => items.push({ who: l.who, text: t })));
-  if (!items.length) return fin();
-  if (voiceMode === 'B') return speakB(items, fin);
-  let i = 0;
-  const next = () => {
-    if (run !== speakRun) return;
-    if (i >= items.length) return fin();
-    const it = items[i++]; let moved = false, guard = null;
-    const ok = () => { if (moved) return; moved = true; clearTimeout(guard); player.onended = player.onerror = null; next(); };
-    const ng = why => {
-      if (moved) return; moved = true; clearTimeout(guard); player.onended = player.onerror = null;
-      if (run !== speakRun) return;
-      voiceMode = 'B'; diag('声：B（' + why + '）');
-      speakB(items.slice(i - 1), fin);
-    };
-    player.onended = ok; player.onerror = () => ng('読込');
-    player.src = ttsUrl(it.text);
-    try { player.preservesPitch = false; player.webkitPreservesPitch = false; } catch(e){}
-    player.playbackRate = it.who === 'ご主人' ? 0.86 : it.who === '奥様' ? 1.1 : 1;
-    guard = setTimeout(() => { if (player.currentTime > 0) ok(); else ng('時間切れ'); }, 5000 + it.text.length * 350);
-    const pr = player.play();
-    if (pr && pr.then) pr.then(() => diag('声：A'), e => ng(e && e.name || '再生'));
-  };
-  next();
+function clearTalk(){ talkTimers.forEach(clearTimeout); talkTimers = []; $('pH').classList.remove('talk'); $('pW').classList.remove('talk'); }
+function showSaying(l){
+  $('pH').classList.toggle('talk', l.who === 'ご主人'); $('pW').classList.toggle('talk', l.who === '奥様');
+  const s = $('said'); s.className = l.who === 'ご主人' ? 'husband' : 'wife'; s.textContent = '';
+  const b = document.createElement('b'); b.textContent = l.who; s.appendChild(b); s.appendChild(document.createTextNode(l.text));
 }
-function speakB(items, fin){
-  if (!synth) { diag('声：×'); return fin(); }
-  const chars = items.reduce((n, l) => n + l.text.length, 0);
-  const timer = setTimeout(fin, 4000 + chars * 300);   // 終わりの合図が来ない機種のための保険
-  const end = () => { clearTimeout(timer); fin(); };
-  const go = () => {
-    const vs = jaVoices();
-    const male = vs.find(v => /otoya|hattori|ichiro|keita|male|男/i.test(v.name));
-    const base = vs.find(v => v !== male) || vs[0] || null;
-    keep = [];
-    try { synth.resume(); } catch(e){}
-    items.forEach((l, i) => {
-      const u = new SpeechSynthesisUtterance(l.text);
-      u.lang = 'ja-JP'; u.volume = 1; u.rate = 1.05;
-      if (l.who === 'ご主人'){ if (male){ u.voice = male; u.pitch = 0.9; } else { if (base) u.voice = base; u.pitch = 0.6; } }
-      else if (l.who === '奥様'){ if (base) u.voice = base; u.pitch = male ? 1.1 : 1.5; }
-      else { if (base) u.voice = base; u.pitch = 1; }
-      if (i === items.length - 1){ u.onend = end; u.onerror = end; }
-      keep.push(u);
-      synth.speak(u);
-    });
-  };
-  if (synth.speaking || synth.pending){ synth.cancel(); setTimeout(go, 200); } else go();
+function animate(lines){   // 声に合わせて、話している方の顔を動かす（時間は文字数からの目安）
+  clearTalk(); let t = 0;
+  lines.forEach(l => { talkTimers.push(setTimeout(() => showSaying(l), t)); t += 500 + l.text.length * 170; });
+  talkTimers.push(setTimeout(() => { $('pH').classList.remove('talk'); $('pW').classList.remove('talk'); }, t + 400));
 }
-function unlockB(){ if (!synth) return; try { const u = new SpeechSynthesisUtterance('あ'); u.volume = 0; u.lang = 'ja-JP'; synth.speak(u); } catch(e){} }
-
-// ── マイク（押さなくても聞き続ける）──
-let rec = null, recWant = false, carried = '', sessionText = '', silenceTimer = null, gestureStart = false, startFails = 0;
-let GAP = parseInt(store.get('rp_gap'), 10) || 3000;
-function heardText(){ return (carried + sessionText).trim(); }
-function joinResults(results){   // 同じ言葉が重なって届く機種があるので、重なりはまとめる
-  const segs = [];
-  for (let i = 0; i < results.length; i++){
-    const t = results[i][0].transcript;
-    const last = segs.length ? segs[segs.length - 1] : '';
-    if (last && t.trim().startsWith(last.trim())) segs[segs.length - 1] = t; else segs.push(t);
-  }
-  return segs.join('');
-}
-function armSilence(){
-  clearTimeout(silenceTimer);
-  if (state !== 'listen' || !heardText()) return;
-  silenceTimer = setTimeout(() => { if (state === 'listen' && heardText().length >= 2) commit(); }, GAP);
-}
-function recBegin(){
-  if (!recWant) return;
-  rec = new SR(); rec.lang = 'ja-JP'; rec.interimResults = true; rec.continuous = true;
-  const mine = rec;
-  rec.onresult = e => {
-    if (mine !== rec || state !== 'listen') return;
-    sessionText = joinResults(e.results);
-    $('interim').textContent = heardText();
-    armSilence();
-  };
-  rec.onerror = e => {
-    if (mine !== rec) return;
-    if (e.error === 'not-allowed' || e.error === 'service-not-allowed'){
-      recWant = false;
-      if (gestureStart){
-        setState('pause');
-        note('マイクが使えませんでした。ブラウザの設定でマイクを許可するか、「文字で入力する」を使ってください。', 'err');
-        openTyped();
-      } else setState('tap');   // 自動では始められない機種。1回タップしてもらう
-    }
-  };
-  rec.onend = () => {
-    if (mine !== rec) return;
-    carried += sessionText; sessionText = '';
-    if (recWant && state === 'listen') setTimeout(recBegin, 250);   // 無音で切れても聞き続ける
-  };
-  try { rec.start(); startFails = 0; }
-  catch(e){
-    if (++startFails < 4) setTimeout(recBegin, 400);
-    else { recWant = false; setState('tap'); }
+function onMessage(m){
+  const role = m.role || (m.source === 'user' ? 'user' : 'agent');
+  const text = String(m.message || '').trim(); if (!text) return;
+  if (role === 'user'){
+    messages.push({ role: 'user', content: text });
+    $('mine').textContent = 'あなた：' + text; logLine('あなた：' + text, true);
+  } else {
+    const lines = parseAgent(text); if (!lines.length) return;
+    messages.push({ role: 'assistant', content: lines.map(l => l.who + '：' + l.text).join('\n') });
+    lines.forEach(l => logLine(l.who + '：' + l.text));
+    animate(lines);
   }
 }
-function recEnd(){
-  recWant = false; clearTimeout(silenceTimer);
-  const r = rec; rec = null;
-  if (r){ try { r.abort(); } catch(e){ try { r.stop(); } catch(e2){} } }
-}
-function listen(fromTap){
-  if (busy) return;
-  if (!SR){ setState('pause'); openTyped(); return; }
-  recEnd();
-  gestureStart = !!fromTap; startFails = 0;
-  carried = ''; sessionText = ''; $('interim').textContent = '';
-  recWant = true; setState('listen'); recBegin();
-}
-function commit(){
-  const text = heardText();
-  recEnd(); $('interim').textContent = '';
-  if (!text){ listen(); return; }
-  send(text);
-}
-function setState(s){
-  state = s;
-  const m = $('mic'); m.className = s;
-  const set = (a, b) => { m.textContent = a; const sm = document.createElement('small'); sm.textContent = b; m.appendChild(sm); };
-  if (s === 'listen') set('🎤 聞いています', '話し終わると自動で送ります（押すとすぐ送る）');
-  else if (s === 'think') set('お客様が考えています…', '');
-  else if (s === 'speak') set('🔊 お客様が話しています', '');
-  else if (s === 'tap') set('ここを押して話し始める', '');
-  else set('一時停止中', '押すと再開します');
-  m.disabled = (s === 'think' || s === 'speak');
-  $('btnPause').textContent = s === 'pause' ? '再開' : '一時停止';
-}
-function openTyped(){ $('typed').style.display = 'block'; $('txt').focus(); }
-function sayThenListen(lines){
-  setState('speak');
-  speak(lines, () => { if (state === 'speak') setTimeout(() => { if (state === 'speak') listen(); }, 250); });
+function onMode(p){
+  mode = p && p.mode || 'listening';
+  if (paused) return;
+  if (mode === 'speaking') setStatus('🔊 お客様が話しています', 'speak');
+  else { setStatus('🎤 聞いています。そのまま話してください', 'listen'); }
 }
 
-// ── 1往復 ──
-async function send(text){
-  if (busy) return;
-  recEnd();
-  busy = true; setBusy(); setState('think');
-  add('me', text);
-  messages.push({ role: 'user', content: text });
-  const wait = note('お客様が考えています…');
-  let lines = null;
+// ── 会話を始める・終える ──
+async function start(){
+  const name = $('name').value.trim();
+  $('startErr').textContent = '';
+  if (!name) return errBox('startErr', '名前を入れてください。');
+  if (!MOCK && !CODE) return errBox('startErr', 'LINEのメニューから開き直してください。（合言葉がありません）');
+  if (!MOCK && !(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) return errBox('startErr', 'この画面ではマイクが使えません。iPhoneはSafari、AndroidはChromeで開き直してください。');
+  store.set('rp_name', name);
+  $('btnStart').disabled = true; $('btnStart').textContent = 'つないでいます…';
   try {
-    const { reply } = await api('turn');
-    wait.remove();
-    messages.push({ role: 'assistant', content: reply });
-    lines = parseLines(reply);
-    lines.forEach(l => add('cu ' + (l.who === 'ご主人' ? 'husband' : l.who === '奥様' ? 'wife' : ''), l.text, l.who));
-    lastLines = lines;
+    if (!MOCK){
+      const st = await navigator.mediaDevices.getUserMedia({ audio: true });   // 先にマイクの許可をもらう
+      st.getTracks().forEach(t => t.stop());
+    }
+    const { token } = await api('token');
+    messages = []; ending = false; paused = false;
+    $('log').textContent = ''; $('said').textContent = ''; $('said').className = ''; $('mine').textContent = ''; $('talkErr').textContent = '';
+    $('btnPause').textContent = '一時停止';
+    show('vTalk'); setStatus('つないでいます…');
+    const opts = {
+      conversationToken: token, connectionType: 'webrtc', useWakeLock: true,
+      onConnect: () => { setStatus('🎤 聞いています。建て付けからどうぞ', 'listen'); },
+      onDisconnect: () => { conv = null; clearTalk(); if (!ending){ setStatus('会話が切れました', 'off'); errBox('talkErr', '会話が切れました。「終了して採点」を押すと、ここまでの分を採点します。'); } },
+      onError: msg => { console.error(msg); if (!ending) errBox('talkErr', 'エラー：' + String(msg).slice(0, 120)); },
+      onMessage, onModeChange: onMode
+    };
+    conv = MOCK ? mockConv(opts) : await EL.Conversation.startSession(opts);
   } catch(e){
-    wait.remove();
-    messages.pop();   // 送れなかった発言は取り消して、もう一度言えるようにする
-    note(e.message + '　もう一度話してください。', 'err');
+    show('vStart');
+    const denied = e && (e.name === 'NotAllowedError' || e.name === 'SecurityError');
+    errBox('startErr', denied ? 'マイクが許可されていません。ブラウザの設定でマイクを許可してから、もう一度押してください。' : 'つなげませんでした。（' + String(e && e.message || e).slice(0, 140) + '）');
   }
-  busy = false; setBusy();
-  if (state !== 'think') return;          // 待っている間に終了・一時停止された
-  if (lines) sayThenListen(lines); else listen();
+  $('btnStart').disabled = false; $('btnStart').textContent = 'ロープレを始める';
 }
-function setBusy(){ $('btnSend').disabled = busy; $('btnEnd').disabled = busy; }
-
 async function finish(){
   if (busy) return;
-  recEnd(); stopVoice();
-  setState('pause');
-  if (!messages.length){ note('まだ何も話していません。'); return; }
-  busy = true; setBusy();
-  const wait = note('採点しています…（30秒ほどかかります）');
+  busy = true; ending = true; $('btnEnd').disabled = true; $('btnPause').disabled = true;
+  clearTalk();
+  try { if (conv) await conv.endSession(); } catch(e){}
+  conv = null;
+  $('talkErr').textContent = '';
+  if (!messages.some(m => m.role === 'user')){
+    busy = false; $('btnEnd').disabled = false; $('btnPause').disabled = false; show('vStart'); return;
+  }
+  setStatus('採点しています…（30秒ほどかかります）');
   try {
     const { result } = await api('score');
-    renderScore(result); show('vScore'); window.scrollTo(0, 0); releaseWake();
+    renderScore(result); show('vScore'); window.scrollTo(0, 0);
   } catch(e){
-    note(e.message + '　もう一度「終了して採点」を押してください。', 'err');
+    setStatus('採点できませんでした', 'off');
+    errBox('talkErr', e.message + '　もう一度「終了して採点」を押してください。');
   }
-  wait.remove(); busy = false; setBusy();
+  busy = false; $('btnEnd').disabled = false; $('btnPause').disabled = false;
 }
 function renderScore(r){
   $('scNum').textContent = r.score + '点';
@@ -413,52 +289,34 @@ function renderScore(r){
   $('scMoved').textContent = r.moved; $('scCooled').textContent = r.cooled; $('scFix').textContent = r.fix;
 }
 
-// ── 画面が消えないようにする ──
-let wake = null;
-async function keepAwake(){ try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch(e){} }
-function releaseWake(){ try { if (wake) wake.release(); } catch(e){} wake = null; }
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && !$('vTalk').classList.contains('hide')) keepAwake();
-});
+
+// ── 画面だけ確かめるための見本（?mock=1）──
+function mockApi(action){
+  return new Promise(r => setTimeout(() => r(action === 'token' ? { token: 'x' }
+    : { result: { stages: ['建て付け','結論','理由','具体例・数字・根拠','結論・まとめ','ひと押し'].map((n,i)=>({name:n,mark:['◯','△','✕'][i%3],reason:'テスト表示です'})), moved:'テスト', cooled:'なし', fix:'テストの文章です', score:62, result:'保留' } }), 300));
+}
+function mockConv(o){
+  const ts = [];
+  ts.push(setTimeout(() => o.onConnect({ conversationId: 'mock' }), 300));
+  ts.push(setTimeout(() => o.onMessage({ role: 'user', message: 'お待たせしました、担当の山田です' }), 900));
+  ts.push(setTimeout(() => { o.onModeChange({ mode: 'speaking' }); o.onMessage({ role: 'agent', message: '<Husband>ふーん。で、結局いくらになるの？</Husband><Wife>うーん、私はちょっと怖いかな…</Wife>' }); }, 1500));
+  ts.push(setTimeout(() => o.onModeChange({ mode: 'listening' }), 9000));
+  return { endSession: async () => ts.forEach(clearTimeout), setMicMuted(){}, setVolume(){} };
+}
 
 // ── ボタン ──
 $('name').value = store.get('rp_name');
-function gapUi(){ document.querySelectorAll('#gap button').forEach(b => b.classList.toggle('on', +b.dataset.ms === GAP)); }
-document.querySelectorAll('#gap button').forEach(b => b.onclick = () => { GAP = +b.dataset.ms; store.set('rp_gap', String(GAP)); gapUi(); });
-gapUi();
-$('btnStart').onclick = () => {
-  const name = $('name').value.trim();
-  $('startErr').textContent = '';
-  const fail = m => { const d = document.createElement('div'); d.className = 'err'; d.textContent = m; $('startErr').appendChild(d); };
-  if (!name) return fail('名前を入れてください。');
-  if (!MOCK && !CODE) return fail('LINEのメニューから開き直してください。（合言葉がありません）');
-  store.set('rp_name', name);
-  messages = []; lastLines = []; $('log').textContent = '';
-  show('vTalk'); keepAwake();
-  note('ご夫婦が席で待っています。案内の声が終わったら、建て付けからどうぞ。');
-  if (!SR) note('このブラウザは声の入力に対応していません。文字で入力してください。（iPhoneはSafari、AndroidはChromeで開くと声で話せます）');
-  // 最初のタップの中で声を出す（iPhoneはこうしないと、あとで声が出ない）。音の確認もかねる
-  unlockB();
-  sayThenListen([{ who: '案内', text: 'ご夫婦が席で待っています。建て付けからどうぞ。' }]);
-};
-$('mic').onclick = () => {
-  if (state === 'listen'){ if (heardText()) commit(); }
-  else if (state === 'pause' || state === 'tap' || state === 'idle') listen(true);
-};
-$('btnPause').onclick = () => {
-  if (busy) return;
-  if (state === 'pause') listen(true);
-  else { recEnd(); stopVoice(); $('interim').textContent = ''; setState('pause'); }
-};
-$('btnAgainVoice').onclick = () => {
-  if (busy || !lastLines.length) return;
-  recEnd(); sayThenListen(lastLines);
-};
-$('btnType').onclick = openTyped;
-$('btnSend').onclick = () => { const t = $('txt').value.trim(); if (t){ $('txt').value = ''; stopVoice(); send(t); } };
+$('btnStart').onclick = start;
 $('btnEnd').onclick = finish;
+$('btnPause').onclick = () => {
+  if (!conv) return;
+  paused = !paused;
+  try { conv.setMicMuted(paused); conv.setVolume({ volume: paused ? 0 : 1 }); } catch(e){}
+  $('btnPause').textContent = paused ? '再開' : '一時停止';
+  if (paused){ clearTalk(); setStatus('一時停止中（聞いていません）', 'off'); } else onMode({ mode });
+};
+$('btnLog').onclick = () => { const l = $('log'); const on = l.style.display !== 'block'; l.style.display = on ? 'block' : 'none'; $('btnLog').textContent = on ? '会話の記録をかくす' : '会話の記録を見る'; };
 $('btnAgain').onclick = () => { show('vStart'); window.scrollTo(0, 0); };
-if (synth){ synth.getVoices(); synth.onvoiceschanged = () => {}; }
 </script>
 </body>
 </html>
