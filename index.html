@@ -993,13 +993,16 @@ function onPlayerState(i, state) {
   if (state === YT.PlayerState.PLAYING) {
     st.playing = true;
     st.lastT = st.player.getCurrentTime();
+    st.lastWall = Date.now();
     limitRate(st);
   } else if (state === YT.PlayerState.PAUSED) {
     st.playing = false;
     flushWatch(i, false);
   } else if (state === YT.PlayerState.ENDED) {
+    // 全画面や画面オフの間は下の500msの見張りが止まることがある。
+    // その間もふつうに再生していた（実際に過ぎた時間と合う）なら、見た分として数える
+    if (st.playing && st.lastT !== null && st.duration) countPlayed(st, st.lastT, st.duration);
     st.playing = false;
-    st.maxPos = Math.max(st.maxPos, st.duration || 0);
     flushWatch(i, true);
     setTimeout(refreshWatch, 1200);
   } else {
@@ -1017,30 +1020,41 @@ setInterval(function() {
     if (typeof t !== 'number' || isNaN(t)) return;
     limitRate(st);
 
+    // 見張りが止まっていた間（全画面・画面オフなど）にふつうに再生して進んだ分は、見た分として数える
+    if (st.playing && st.lastT !== null && countPlayed(st, st.lastT, t)) {
+      if (st.sinceSend >= SEND_INTERVAL && st.dirty) { st.sinceSend = 0; flushWatch(i, false); }
+      st.lastT = t; st.lastWall = Date.now();
+      return;
+    }
     // 未視聴の位置より先へシークされたら、見た位置まで戻す
     if (t > st.maxPos + SEEK_TOLERANCE) {
       st.player.seekTo(st.maxPos, true);
-      st.lastT = st.maxPos;
+      st.lastT = st.maxPos; st.lastWall = Date.now();
       return;
     }
-    if (st.playing && st.lastT !== null) {
-      const delta = t - st.lastT;
-      // 通常再生の範囲の増分だけ数える（シークによる大きなジャンプは数えない）
-      if (delta > 0 && delta < 2) {
-        // 0〜最大到達位置は「見た部分」。そこから先に再生した分だけ累計に足す
-        const from = Math.max(st.lastT, st.maxPos);
-        if (t > from) {
-          st.watched += t - from;
-          st.sinceSend += t - from;
-          st.dirty = true;
-        }
-        if (t > st.maxPos) st.maxPos = t;
-        if (st.sinceSend >= SEND_INTERVAL && st.dirty) { st.sinceSend = 0; flushWatch(i, false); }
-      }
-    }
-    st.lastT = t;
+    st.lastT = t; st.lastWall = Date.now();
   });
 }, 500);
+
+// lastT から t まで「ふつうに再生して」進んだなら、視聴秒数に足して true を返す。
+// 早送り（シーク）で飛んだ場合は、実際に過ぎた時間より大きく進むので数えない。
+function countPlayed(st, lastT, t) {
+  const delta = t - lastT;
+  if (!(delta > 0)) return false;
+  const wall = st.lastWall ? (Date.now() - st.lastWall) / 1000 : 0;
+  if (!(delta < 2 || delta <= wall * MAX_RATE + 1.5)) return false;
+  // まだ見ていない部分に進んだ分を足す。
+  // 記録が足りていない人（到達位置より視聴秒数が少ない）は、見直した分も足して取り戻せるようにする
+  const behind = st.watched < st.maxPos - 3;
+  const from = behind ? lastT : Math.max(lastT, st.maxPos);
+  if (t > from) {
+    const cap = st.duration ? Math.max(0, st.duration - st.watched) : (t - from);
+    const add = Math.min(t - from, cap);
+    st.watched += add; st.sinceSend += add; st.dirty = true;
+  }
+  if (t > st.maxPos) st.maxPos = t;
+  return true;
+}
 
 function flushWatch(i, force) {
   const st = vstate[i];
